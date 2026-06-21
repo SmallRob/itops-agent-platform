@@ -19,7 +19,7 @@ services:
     networks:
       - itops-network
     ports:
-      - "3001:3001"
+      - "19301:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -84,7 +84,7 @@ services:
     networks:
       - itops-network
     ports:
-      - "8080:80"
+      - "19300:80"
     depends_on:
       backend:
         condition: service_healthy
