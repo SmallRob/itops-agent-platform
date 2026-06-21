@@ -234,16 +234,6 @@ npm run dev
 
 > ⚠️ 首次登录后系统会强制要求修改密码
 
-<img alt="image" src="docs-assets/a0f8974f7fd227711675a3075121fd5a.png" style="max-width: 100%; height: auto;" />
-
-## 功能模块
-
-### 仪表盘
-
-系统概览，展示服务器、告警、任务等核心指标。
-
-<img alt="屏幕截图 2026-05-18 144450" src="docs-assets/images/q (1).png" style="max-width: 100%; height: auto;" />
-
 ### Web SSH 终端
 
 - 基于 xterm.js 的交互式 SSH 终端
@@ -251,9 +241,6 @@ npm run dev
 - 窗口大小自适应
 - 连接状态可视化
 - 终端会话管理（30 分钟 TTL 自动清理）
-
-<img alt="image" src="docs-assets/fdsfz.png" style="max-width: 100%; height: auto;" />
-<img alt="image" src="docs-assets/images/w (2).png" style="max-width: 100%; height: auto;" />
 
 ### 主机管理
 
@@ -263,8 +250,6 @@ npm run dev
 - 服务器卡片展示分组标签和硬件信息
 - 支持 CSV/JSON 格式导出服务器列表
 
-<img alt="image" src="docs-assets/0-3.png" style="max-width: 100%; height: auto;" />
-
 ### 服务器管理
 
 - 添加/编辑/删除服务器，支持 SSH 密码或密钥认证
@@ -273,15 +258,12 @@ npm run dev
 - 14 项系统合规检查（CPU/内存/磁盘/网络/服务/安全等）
 - 命令历史和合规历史 JSON 导出
 
-<img alt="屏幕截图 2026-05-18 144417" src="docs-assets/0-1.gif" style="max-width: 100%; height: auto;" />
-
 ### Agent 管理
 
 - 9 个预设 Agent：告警处理、故障诊断、日志分析、系统巡检、变更执行、文档生成、合规检查、服务器命令执行、自动巡检
 - 支持自定义创建 Agent，配置系统提示词、模型、温度参数
 - Agent 测试与执行历史追踪
 
-<img alt="image" src="docs-assets/0-2.png" style="max-width: 100%; height: auto;" />
 
 ### 工作流编排
 
@@ -290,7 +272,6 @@ npm run dev
 - 支持上下文传递、服务器选择
 - 执行顺序拓扑排序，视觉位置优先
 
-<img alt="屏幕截图 2026-05-18 144326" src="docs-assets/0-7.png" style="max-width: 100%; height: auto;" />
 
 ### 任务执行
 
@@ -299,7 +280,6 @@ npm run dev
 - 支持暂停/继续/取消
 - 自动生成 Markdown 执行报告
 
-<img alt="image" src="docs-assets/images/q (2).jpg" style="max-width: 100%; height: auto;" />
 
 ### 告警中心
 
@@ -308,15 +288,11 @@ npm run dev
 - 告警→工作流自动映射触发
 - 状态管理：新建/已确认/已解决
 
-<img alt="image" src="docs-assets/images/q (8).png" style="max-width: 100%; height: auto;" />
-
 ### 通知系统
 
 - 支持 Webhook、邮件、企业微信、钉钉通知
 - 通知配置管理
 - 系统通知自动推送
-
-<img alt="image" src="docs-assets/images/q (17).png" style="max-width: 100%; height: auto;" />
 
 ### 数据导入导出
 
@@ -335,8 +311,6 @@ npm run dev
 - 备份历史管理和清理策略
 - 支持定时自动备份
 
-<img alt="image" src="docs-assets/images/q (9).png" style="max-width: 100%; height: auto;" />
-
 ### 知识库
 
 - 22 条预设知识条目
@@ -344,15 +318,11 @@ npm run dev
 - 自动注入 LLM 对话上下文
 - 批量导入/导出
 
-<img alt="image" src="docs-assets/images/q (11).png" style="max-width: 100%; height: auto;" />
-
 ### AI Copilot
 
 - 自然语言对话式运维助手
 - 自动感知系统告警、服务器、任务状态
 - 基于规则的快速响应 + LLM 深度分析
-
-<img alt="image" src="docs-assets/images/q (13).png" style="max-width: 100%; height: auto;" />
 
 ### 定时任务
 
