@@ -34,6 +34,10 @@
 > 当需要详细信息时，读取以下文件：
 
 - [domain-details/alert-domain/index.md](../domain-details/alert-domain/index.md) - 完整索引
+- [domain-details/alert-domain/entities.md](../domain-details/alert-domain/entities.md) - 实体定义
+- [domain-details/alert-domain/services.md](../domain-details/alert-domain/services.md) - 服务接口
+- [domain-details/alert-domain/apis.md](../domain-details/alert-domain/apis.md) - API 定义
+- [domain-details/alert-domain/flows.md](../domain-details/alert-domain/flows.md) - 业务流程
 
 ---
 

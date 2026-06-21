@@ -35,6 +35,10 @@
 > 当需要详细信息时，读取以下文件：
 
 - [domain-details/infrastructure-domain/index.md](../domain-details/infrastructure-domain/index.md) - 完整索引
+- [domain-details/infrastructure-domain/entities.md](../domain-details/infrastructure-domain/entities.md) - 实体定义
+- [domain-details/infrastructure-domain/services.md](../domain-details/infrastructure-domain/services.md) - 服务接口
+- [domain-details/infrastructure-domain/apis.md](../domain-details/infrastructure-domain/apis.md) - API 定义
+- [domain-details/infrastructure-domain/flows.md](../domain-details/infrastructure-domain/flows.md) - 业务流程
 
 ---
 

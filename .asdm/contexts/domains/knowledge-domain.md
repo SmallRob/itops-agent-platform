@@ -31,6 +31,10 @@
 > 当需要详细信息时，读取以下文件：
 
 - [domain-details/knowledge-domain/index.md](../domain-details/knowledge-domain/index.md) - 完整索引
+- [domain-details/knowledge-domain/entities.md](../domain-details/knowledge-domain/entities.md) - 实体定义
+- [domain-details/knowledge-domain/services.md](../domain-details/knowledge-domain/services.md) - 服务接口
+- [domain-details/knowledge-domain/apis.md](../domain-details/knowledge-domain/apis.md) - API 定义
+- [domain-details/knowledge-domain/flows.md](../domain-details/knowledge-domain/flows.md) - 业务流程
 
 ---
 

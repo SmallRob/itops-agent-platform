@@ -33,6 +33,10 @@
 > 当需要详细信息时，读取以下文件：
 
 - [domain-details/workflow-domain/index.md](../domain-details/workflow-domain/index.md) - 完整索引
+- [domain-details/workflow-domain/entities.md](../domain-details/workflow-domain/entities.md) - 实体定义
+- [domain-details/workflow-domain/services.md](../domain-details/workflow-domain/services.md) - 服务接口
+- [domain-details/workflow-domain/apis.md](../domain-details/workflow-domain/apis.md) - API 定义
+- [domain-details/workflow-domain/flows.md](../domain-details/workflow-domain/flows.md) - 业务流程
 
 ---
 

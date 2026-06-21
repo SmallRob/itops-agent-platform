@@ -34,6 +34,10 @@
 > 当需要详细信息时，读取以下文件：
 
 - [domain-details/remediation-domain/index.md](../domain-details/remediation-domain/index.md) - 完整索引
+- [domain-details/remediation-domain/entities.md](../domain-details/remediation-domain/entities.md) - 实体定义
+- [domain-details/remediation-domain/services.md](../domain-details/remediation-domain/services.md) - 服务接口
+- [domain-details/remediation-domain/apis.md](../domain-details/remediation-domain/apis.md) - API 定义
+- [domain-details/remediation-domain/flows.md](../domain-details/remediation-domain/flows.md) - 业务流程
 
 ---
 
