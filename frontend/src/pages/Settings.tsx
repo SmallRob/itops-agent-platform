@@ -1566,19 +1566,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* 微信公众号二维码 */}
-        <div className="bg-surface rounded-xl p-6 border border-border">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">关注我们</h3>
-          <p className="text-sm text-text-secondary mb-4">扫码关注微信公众号，获取更多运维资讯</p>
-          <div className="flex justify-center">
-            <img
-              src="/wechaterweima.png"
-              alt="微信公众号二维码"
-              className="max-w-full h-auto rounded-lg border border-border"
-              style={{ maxHeight: '300px', objectFit: 'contain' }}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
