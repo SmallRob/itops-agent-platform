@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+backend/dist/
+backend/build/
+frontend/dist/
+frontend/build/
+backend/data/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/data/app.db
+backend/data/*.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+server.log
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE & Editor
+.idea/
+.vscode/
+.trae/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.temp/
+.tmp/
+
+# Docker runtime data
+backend-data/
+backend-logs/
+frontend-data/
+backend-logs.txt
+
+# TypeScript build info
+*.tsbuildinfo

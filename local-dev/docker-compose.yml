@@ -1,0 +1,113 @@
+# ============================================================
+# ITOps Agent Platform - Local Development Environment
+# ============================================================
+# 用于本地开发测试的Docker Compose配置
+# 特点：
+#   - 从源码构建镜像
+#   - 启用开发模式和详细日志
+#   - 暴露调试端口
+#   - 数据持久化到本地目录
+#   - 热重载支持（通过挂载源码）
+# ============================================================
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: local-dev/Dockerfile.backend.dev
+    container_name: itops-dev-backend
+    networks:
+      - itops-dev-network
+    ports:
+      - "3001:3001"          # API端口
+      - "9229:9229"          # Node.js 调试端口
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/app/data/app.db
+      - JWT_SECRET=dev-jwt-secret-not-for-production-use
+      - DOUBAO_API_KEY=${DOUBAO_API_KEY:-}
+      - DOUBAO_API_BASE=${DOUBAO_API_BASE:-https://ark.cn-beijing.volces.com/api/v3}
+      - DOUBAO_MODEL=${DOUBAO_MODEL:-doubao-4o}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost:3000
+      - LOG_LEVEL=debug
+    volumes:
+      - dev-data:/app/data                          # 数据库持久化
+      - dev-backups:/app/backups                    # 备份文件持久化
+      - ../backend/src:/app/src                     # 挂载源码用于热重载
+      - ../backend/package.json:/app/package.json
+      - ../backend/tsconfig.json:/app/tsconfig.json
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"        # 开发环境允许更大的日志
+        max-file: "10"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: local-dev/Dockerfile.frontend.dev
+    container_name: itops-dev-frontend
+    networks:
+      - itops-dev-network
+    ports:
+      - "5173:3000"            # Vite dev server (内部端口3000 -> 外部5173)
+    environment:
+      - DOCKER_MODE=true
+      - VITE_API_BASE_URL=http://backend:3001
+    volumes:
+      - ../frontend/src:/app/src
+      - ../frontend/public:/app/public
+      - ../frontend/index.html:/app/index.html
+      - ../frontend/package.json:/app/package.json
+      - ../frontend/vite.config.ts:/app/vite.config.ts
+      - ../frontend/tailwind.config.js:/app/tailwind.config.js
+      - ../frontend/postcss.config.js:/app/postcss.config.js
+      - ../frontend/tsconfig.json:/app/tsconfig.json
+      - ../frontend/tsconfig.node.json:/app/tsconfig.node.json
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "10"
+
+networks:
+  itops-dev-network:
+    driver: bridge
+
+volumes:
+  dev-data:
+    driver: local
+  dev-backups:
+    driver: local
