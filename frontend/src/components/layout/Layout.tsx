@@ -5,142 +5,79 @@ import api from '../../lib/api';
 import {
   LayoutDashboard,
   Bot,
-  Brain,
-  GitBranch,
-  Play,
   Bell,
   BookOpen,
-  FileCode,
-  Settings,
   Server,
-  Shield,
   FileText,
-  MessageSquare,
-  Clock,
-  Link2,
-  Users,
-  Search,
-  LogOut,
-  User as UserIcon,
-  Terminal,
-  Globe,
-  Layers,
-  Monitor,
-  MonitorPlay,
-  Wrench,
-  ListChecks,
-  BarChart3,
   Network,
   Sun,
   Moon,
-  Key,
-  Lightbulb,
-  Workflow,
   ChevronDown,
   ChevronRight,
   Home,
-  ServerCog,
   Zap,
   AlertTriangle,
-  Activity,
-  ShieldCheck,
   BookMarked,
   Cog,
-  FlaskConical,
-  Radio,
-  Database,
+  LogOut,
+  User as UserIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import ChatWidget from '../ChatWidget';
 
+/**
+ * 重构后的导航菜单结构
+ * 从 42 个菜单项 / 7 组 精简为 13 个菜单项 / 5 组
+ * 低频功能通过页面内 Tab 切换访问
+ */
 const navigationGroups = [
   {
-    name: '首页',
+    name: '工作台',
     icon: Home,
     items: [
-      { name: '仪表盘', href: '/dashboard', icon: LayoutDashboard },
-      { name: '监控大屏', href: '/big-screen', icon: Monitor },
+      { name: '智能驾驶舱', href: '/workspace', icon: LayoutDashboard },
+      { name: '告警中心', href: '/alert-center', icon: Bell },
     ]
   },
   {
-    name: '服务器管理',
-    icon: ServerCog,
-    items: [
-      { name: '服务器管理', href: '/servers', icon: Server },
-      { name: '网络设备', href: '/network-devices', icon: Network },
-      { name: 'SNMP 管理', href: '/snmp', icon: Radio },
-      { name: '网络设备发现', href: '/network-discovery', icon: Globe },
-      { name: '数据库管理', href: '/db-connections', icon: Database },
-      { name: '认证凭证', href: '/ssh-keys', icon: Key },
-      { name: 'Web 终端', href: '/terminal', icon: Terminal },
-      { name: '远程桌面', href: '/remote-desktop', icon: MonitorPlay },
-    ]
-  },
-  {
-    name: '自动化执行',
+    name: 'AI 运维',
     icon: Zap,
     items: [
-      { name: 'Agent管理', href: '/agents', icon: Bot },
-      { name: '工作流', href: '/workflows', icon: GitBranch },
-      { name: '任务执行', href: '/tasks', icon: Play },
-      { name: '审批中心', href: '/approvals', icon: ShieldCheck },
-      { name: '脚本中心', href: '/scripts', icon: FileCode },
-      { name: '定时任务', href: '/scheduled-tasks', icon: Clock },
+      { name: 'AI Agent', href: '/ai-agent', icon: Bot },
+      { name: '执行中心', href: '/execution', icon: Zap },
+      { name: '自动修复', href: '/auto-remediation', icon: Network },
     ]
   },
   {
-    name: '告警与AI分析',
-    icon: AlertTriangle,
+    name: '基础设施',
+    icon: Server,
     items: [
-      { name: '告警中心', href: '/alerts', icon: Bell },
-      { name: '告警自动处理', href: '/alert-mappings', icon: Link2 },
-      { name: '告警降噪', href: '/alert-noise', icon: Shield },
-      { name: '告警关联', href: '/alert-correlation-groups', icon: Layers },
-      { name: '根因分析', href: '/root-cause-analysis', icon: Search },
-      { name: 'AI 根因报告', href: '/ai-root-cause', icon: Brain },
-      { name: '服务拓扑', href: '/topology', icon: Network },
-      { name: 'AI 洞察', href: '/ai-insights', icon: Lightbulb },
-      { name: 'AI 自动分析', href: '/alert-auto-analysis', icon: Zap },
-      { name: '巡检中心', href: '/inspection-center', icon: Activity },
+      { name: '服务器', href: '/server-mgmt', icon: Server },
+      { name: '网络设备', href: '/network-mgmt', icon: Network },
     ]
   },
   {
-    name: '自动修复/自愈',
-    icon: ShieldCheck,
-    items: [
-      { name: '自动修复策略', href: '/remediation-policies', icon: Wrench },
-      { name: '修复效果仪表盘', href: '/remediation-dashboard', icon: BarChart3 },
-      { name: '修复执行记录', href: '/remediation-executions', icon: ListChecks },
-      { name: '自愈工作台', href: '/remediation-workbench', icon: Workflow },
-      { name: 'AI 修复记录', href: '/ai-remediations', icon: Lightbulb },
-    ]
-  },
-  {
-    name: '知识库与报告',
+    name: '知识与运营',
     icon: BookMarked,
     items: [
       { name: '知识库', href: '/knowledge', icon: BookOpen },
-      { name: '审计日志', href: '/audit', icon: Shield },
-      { name: '通知系统', href: '/notifications', icon: MessageSquare },
-      { name: '报告系统', href: '/reports', icon: FileText },
+      { name: '报告中心', href: '/report-center', icon: FileText },
     ]
   },
   {
-    name: '系统与用户',
+    name: '系统管理',
     icon: Cog,
     items: [
-      { name: '用户管理', href: '/users', icon: Users },
-      { name: '前端测试中心', href: '/frontend-tests', icon: FlaskConical },
-      { name: '设置', href: '/settings', icon: Settings },
+      { name: '系统管理', href: '/system-mgmt', icon: Cog },
     ]
   },
 ];
 
 export default function Layout() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(['首页', '服务器管理', '自动化执行', '告警与AI分析', '自动修复/自愈', '知识库与报告', '系统与用户', '开发与测试'])
+    new Set(['工作台', 'AI 运维', '基础设施', '知识与运营', '系统管理'])
   );
 
   const toggleGroup = (groupName: string) => {
