@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Play, Eye, Trash2, AlertTriangle, CheckCircle, Clock, Zap, Lightbulb } from 'lucide-react';
@@ -148,7 +149,7 @@ export default function RootCauseAnalysisPage() {
                       </div>
                     )}
                     <div className="text-xs text-text-secondary">
-                      创建于 {new Date(rca.created_at).toLocaleString('zh-CN')}
+                      创建于 {formatTime(rca.created_at)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

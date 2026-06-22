@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { formatTime, formatDuration } from '../lib/date';
 import { 
   CheckCircle, 
   XCircle, 
@@ -133,24 +134,6 @@ export default function RemediationExecutions() {
       'rejected': 'bg-orange-500/10 text-orange-400 border-orange-500/20'
     };
     return map[status] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-  };
-
-  const formatTime = (timeStr: string) => {
-    if (!timeStr) return '-';
-    const date = new Date(timeStr);
-    return date.toLocaleString('zh-CN', { 
-      month: '2-digit', 
-      day: '2-digit', 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    });
-  };
-
-  const formatDuration = (ms: number) => {
-    if (!ms) return '-';
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(1)}s`;
   };
 
   return (

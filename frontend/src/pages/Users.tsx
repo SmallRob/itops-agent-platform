@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, UserPlus } from 'lucide-react';
@@ -119,9 +120,6 @@ export default function Users() {
     });
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
 
   const getRoleBadge = (role: string) => {
     const roles = {

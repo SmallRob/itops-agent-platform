@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bot, AlertTriangle, Shield, Clock, CheckCircle, XCircle, Loader2, Terminal, ChevronDown, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
+import { formatTime } from '../lib/date';
 
 interface AiRemediation {
   id: string;
@@ -65,12 +66,6 @@ export default function AiRemediations() {
         {labels[risk] || risk}
       </span>
     );
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('zh-CN', {
-      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
-    });
   };
 
   return (

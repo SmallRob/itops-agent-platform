@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, CheckCircle, XCircle, Clock, AlertCircle, Check, X } from 'lucide-react';
 import api from '../lib/api';
+import { formatTime } from '../lib/date';
 import { useToast } from '../contexts/ToastContext';
 
 interface ApprovalRequest {
@@ -83,16 +84,6 @@ export default function Approvals() {
         {badge.label}
       </span>
     );
-  };
-
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (

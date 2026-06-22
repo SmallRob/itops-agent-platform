@@ -91,7 +91,7 @@ export default function NetworkDeviceCard({ device, onEdit, onDelete, onInspect,
     if (hours < 24) return `${hours} 小时前`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days} 天前`;
-    return d.toLocaleDateString('zh-CN');
+    return d.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
   };
 
   return (

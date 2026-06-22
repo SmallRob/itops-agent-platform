@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -405,7 +406,7 @@ export default function Agents() {
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-500">最后使用</span>
                       <span className="text-slate-300">
-                        {new Date(agent.last_used_at).toLocaleDateString()}
+                        {formatDate(agent.last_used_at)}
                       </span>
                     </div>
                   )}
@@ -718,7 +719,7 @@ function AgentDetailInner({ agentId, onBack, deleteMutation }: AgentDetailInnerP
               <div>
                 <span className="text-sm text-slate-500 block mb-1">最后使用</span>
                 <span className="text-slate-300">
-                  {agent.last_used_at ? new Date(agent.last_used_at).toLocaleString() : '-'}
+                  {agent.last_used_at ? formatTime(agent.last_used_at) : '-'}
                 </span>
               </div>
               <div>
@@ -793,7 +794,7 @@ function AgentDetailInner({ agentId, onBack, deleteMutation }: AgentDetailInnerP
                         {exec.status === 'success' ? '成功' : '失败'}
                       </span>
                       <span className="text-sm text-slate-400">
-                        {new Date(exec.created_at).toLocaleString()}
+                        {formatTime(exec.created_at)}
                       </span>
                     </div>
                     <span className="text-xs text-slate-500">

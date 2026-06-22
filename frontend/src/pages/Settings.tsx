@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1641,7 +1642,7 @@ export default function Settings() {
                               <div>
                                 <p className="text-sm font-medium text-text-primary">{backup.filename}</p>
                                 <p className="text-xs text-text-secondary">
-                                  {new Date(backup.createdAt).toLocaleString()} • {formatFileSize(backup.size)}
+                                  {formatTime(backup.createdAt)} • {formatFileSize(backup.size)}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">

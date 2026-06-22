@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCircle, XCircle, Filter, Search, Clock } from 'lucide-react';
@@ -75,9 +76,6 @@ export default function Notifications() {
     new Set((notificationsData?.notifications || []).map((n: Notification) => n.type))
   ) as string[];
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
 
   const getTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {

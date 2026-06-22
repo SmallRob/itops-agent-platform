@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
@@ -691,7 +692,7 @@ export default function Tasks() {
                                   {result.metadata && result.metadata.executionTime && (
                                     <div className="mt-3 pt-3 border-t border-border">
                                       <p className="text-xs text-text-secondary">
-                                        执行时间: {new Date(result.metadata.executionTime).toLocaleString()}
+                                        执行时间: {formatTime(result.metadata.executionTime)}
                                       </p>
                                     </div>
                                   )}
@@ -750,7 +751,7 @@ export default function Tasks() {
                                   <h4 className="font-medium text-text-primary">{report.name}</h4>
                                 </div>
                                 <p className="text-sm text-text-secondary">
-                                  创建时间: {new Date(report.created_at).toLocaleString()}
+                                  创建时间: {formatTime(report.created_at)}
                                 </p>
                                 <p className="text-xs text-text-secondary mt-1">
                                   {report.format?.toUpperCase() || 'MARKDOWN'} 格式

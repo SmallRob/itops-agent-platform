@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -433,7 +434,7 @@ export default function SNMP() {
                           {cred.snmp_auth_protocol && <span>认证 {cred.snmp_auth_protocol}</span>}
                           {cred.host && <span>IP {cred.host}</span>}
                           {cred.snmp_priv_protocol && <span>加密 {cred.snmp_priv_protocol}</span>}
-                          <span>创建于 {new Date(cred.created_at).toLocaleDateString()}</span>
+                          <span>创建于 {formatDate(cred.created_at)}</span>
                         </div>
                       </div>
                     </div>
@@ -672,7 +673,7 @@ export default function SNMP() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono text-text-tertiary">
-                            {new Date(trap.received_at || trap.timestamp).toLocaleString()}
+                            {formatTime(trap.received_at || trap.timestamp)}
                           </span>
                           <span className="text-xs text-primary font-mono">{trap.sourceIp || trap.source}</span>
                         </div>

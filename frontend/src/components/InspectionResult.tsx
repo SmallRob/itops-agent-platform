@@ -1,3 +1,4 @@
+import { formatTime } from '../lib/date';
 import { X, CheckCircle2, AlertCircle, AlertTriangle, Loader2, Clock } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
@@ -190,7 +191,7 @@ export default function InspectionResult({ result, deviceName, onClose }: Inspec
         <div className="flex items-center justify-between px-6 py-4 bg-background/50 border-t border-border">
           <div className="flex items-center gap-2 text-xs text-text-secondary">
             <Clock className="w-3 h-3" />
-            <span>{new Date(result.results[0]?.timestamp).toLocaleString('zh-CN')}</span>
+            <span>{formatTime(result.results[0]?.timestamp)}</span>
           </div>
           <div className="flex items-center gap-2">
             <button

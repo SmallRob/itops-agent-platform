@@ -21,6 +21,7 @@ services:
     ports:
       - "19301:3001"
     environment:
+      - TZ=Asia/Shanghai
       - NODE_ENV=production
       - PORT=3001
       - HOST=0.0.0.0
@@ -85,6 +86,8 @@ services:
       - itops-network
     ports:
       - "19300:80"
+    environment:
+      - TZ=Asia/Shanghai
     depends_on:
       backend:
         condition: service_healthy

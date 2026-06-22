@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, Plus, Download, Clock, Trash2, Edit2, Eye, X } from 'lucide-react';
@@ -257,7 +258,7 @@ export default function Reports() {
                     </div>
                     <h3 className="text-lg font-semibold text-text-primary mb-1">{report.name}</h3>
                     <p className="text-text-secondary text-sm">
-                      创建时间: {new Date(report.created_at).toLocaleString()}
+                      创建时间: {formatTime(report.created_at)}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -313,7 +314,7 @@ export default function Reports() {
                       </span>
                       {report.last_generated && (
                         <span>
-                          最后生成: {new Date(report.last_generated).toLocaleString()}
+                          最后生成: {formatTime(report.last_generated)}
                         </span>
                       )}
                       <span>
@@ -548,7 +549,7 @@ export default function Reports() {
                     {typeLabels[selectedReport.type] || selectedReport.type}
                   </span>
                   <span className="text-text-secondary text-sm">
-                    创建时间: {new Date(selectedReport.created_at).toLocaleString()}
+                    创建时间: {formatTime(selectedReport.created_at)}
                   </span>
                 </div>
                 <div className="prose prose-invert max-w-none">

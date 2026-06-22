@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -355,7 +356,7 @@ export default function DbConnections() {
                   </span>
                   <span className="flex items-center gap-1">
                     <RefreshCw className="w-3 h-3" />
-                    {new Date(conn.updated_at).toLocaleDateString()}
+                    {formatDate(conn.updated_at)}
                   </span>
                 </div>
               </div>

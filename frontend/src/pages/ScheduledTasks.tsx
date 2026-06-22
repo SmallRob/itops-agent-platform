@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Play, Pause } from 'lucide-react';
@@ -127,10 +128,6 @@ export default function ScheduledTasks() {
     });
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '未执行';
-    return new Date(dateStr).toLocaleString();
-  };
 
   return (
     <div className="h-full overflow-auto p-6">

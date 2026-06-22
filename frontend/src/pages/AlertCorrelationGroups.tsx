@@ -9,7 +9,7 @@ import {
 import clsx from 'clsx';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
-import { safeFormatDistance } from '../lib/date';
+import { safeFormatDistance, formatTime } from '../lib/date';
 
 interface CorrelationGroup {
   id: string;
@@ -233,7 +233,7 @@ export default function AlertCorrelationGroups() {
                           <Bell className="w-3 h-3" />
                           {group.member_count || group.alert_count} 条告警
                         </span>
-                        <span>{group.created_at ? new Date(group.created_at).toLocaleString() : ''}</span>
+                        <span>{group.created_at ? formatTime(group.created_at) : ''}</span>
                         {group.device_ids && <span>设备: {group.device_ids}</span>}
                       </div>
                     </div>
@@ -284,7 +284,7 @@ export default function AlertCorrelationGroups() {
                   <span className="text-xs text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full">自动关联</span>
                 )}
                 <span className="text-xs text-text-secondary bg-background px-2.5 py-1 rounded-full">
-                  创建于 {groupDetail.group?.created_at ? new Date(groupDetail.group.created_at).toLocaleString() : ''}
+                  创建于 {groupDetail.group?.created_at ? formatTime(groupDetail.group.created_at) : ''}
                 </span>
               </div>
 
@@ -325,7 +325,7 @@ export default function AlertCorrelationGroups() {
                       <p className="text-xs text-text-secondary mt-1 ml-1 line-clamp-2">{member.content}</p>
                     )}
                     <div className="text-xs text-text-tertiary mt-1 ml-1">
-                      {member.alert_created_at ? new Date(member.alert_created_at).toLocaleString() : ''}
+                      {member.alert_created_at ? formatTime(member.alert_created_at) : ''}
                     </div>
                   </div>
                 ))}

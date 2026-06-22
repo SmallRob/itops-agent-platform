@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, XCircle, CheckCircle, Trash2, RefreshCw, Clock } from 'lucide-react';
@@ -172,7 +173,7 @@ export default function AlertNoiseManagement() {
                         {alert.suppression_until && (
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            抑制至 {new Date(alert.suppression_until).toLocaleString()}
+                            抑制至 {formatTime(alert.suppression_until)}
                           </span>
                         )}
                       </div>

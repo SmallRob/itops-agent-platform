@@ -8,7 +8,7 @@ import {
 import clsx from 'clsx';
 import api from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
-import { safeFormatDistance } from '../lib/date';
+import { safeFormatDistance, formatTime } from '../lib/date';
 
 interface DiscoveryJob {
   id: string;
@@ -263,7 +263,7 @@ export default function NetworkDiscovery() {
                         {job.status === 'running' && (
                           <span className="text-blue-400 font-medium">扫描中 {job.progress}%</span>
                         )}
-                        <span>{job.created_at ? new Date(job.created_at).toLocaleString() : ''}</span>
+                        <span>{job.created_at ? formatTime(job.created_at) : ''}</span>
                       </div>
                     </div>
                   </div>

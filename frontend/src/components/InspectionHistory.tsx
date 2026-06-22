@@ -1,3 +1,4 @@
+import { formatTime } from '../lib/date';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X, History, Loader2, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
@@ -115,7 +116,7 @@ export default function InspectionHistory({ deviceId, deviceName, onClose }: Ins
                         {typeLabels[item.inspection_type]}
                       </p>
                       <p className="text-xs text-text-secondary mt-0.5">
-                        {new Date(item.created_at).toLocaleString('zh-CN')} · {formatDuration(item.duration_ms)}
+                        {formatTime(item.created_at)} · {formatDuration(item.duration_ms)}
                       </p>
                     </div>
                   </div>
@@ -172,7 +173,7 @@ export default function InspectionHistory({ deviceId, deviceName, onClose }: Ins
                 </div>
                 <div>
                   <span className="text-text-secondary">创建时间</span>
-                  <p className="font-medium text-text-primary">{new Date(selectedHistory.created_at).toLocaleString('zh-CN')}</p>
+                  <p className="font-medium text-text-primary">{formatTime(selectedHistory.created_at)}</p>
                 </div>
                 <div>
                   <span className="text-text-secondary">命令执行</span>

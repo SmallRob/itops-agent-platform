@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { formatTime } from '../lib/date';
 import { 
   CheckCircle, 
   XCircle, 
@@ -147,17 +148,6 @@ export default function RemediationWorkbench() {
       'high': '高'
     };
     return map[level] || level;
-  };
-
-  const formatTime = (timeStr: string) => {
-    if (!timeStr) return '-';
-    const date = new Date(timeStr);
-    return date.toLocaleString('zh-CN', { 
-      month: '2-digit', 
-      day: '2-digit', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
   };
 
   const pendingAudits = data?.audits?.filter((a: any) => a.status === 'pending') || [];

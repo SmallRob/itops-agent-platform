@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Search, Zap, CheckCircle, XCircle, Eye, Play, Flag, Clock, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
@@ -171,7 +172,7 @@ export default function AIRootCause() {
                       <span>建议: {(item.recommendations || []).length} 个</span>
                     </div>
                     <div className="text-text-secondary">
-                      {new Date(item.created_at).toLocaleString('zh-CN')}
+                      {formatTime(item.created_at)}
                     </div>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../lib/api';
+import { formatDate } from '../lib/date';
 import { useToast } from '../contexts/ToastContext';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
@@ -337,7 +338,7 @@ export default function SSHKeys() {
                         <Server className="h-3 w-3" />
                         <span>{key.usage_count} 台设备</span>
                         <span className="mx-1 text-[#4a5568]">·</span>
-                        <span>{new Date(key.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
+                        <span>{formatDate(key.created_at)}</span>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-0.5 opacity-40 transition-opacity group-hover:opacity-100">

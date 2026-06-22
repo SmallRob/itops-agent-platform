@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Clock, User, Database, FileText, Eye, Search } from 'lucide-react';
@@ -57,9 +58,6 @@ export default function AuditLogs() {
   const actions = Array.from(new Set((logsData?.logs || []).map((l: AuditLog) => l.action))) as string[];
   const resources = Array.from(new Set((logsData?.logs || []).map((l: AuditLog) => l.resource_type))) as string[];
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
 
   const getActionIcon = (action: string) => {
     const lowerAction = action.toLowerCase();

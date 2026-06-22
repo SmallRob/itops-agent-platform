@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Pencil, CheckCircle2, AlertCircle, Loader2, GripVertical, Power, Zap, Bot, ArrowRight, ChevronDown } from 'lucide-react';
@@ -434,7 +435,7 @@ export default function AIModels() {
                       </div>
                       {model.last_test_time && (
                         <div className="text-xs text-text-tertiary mt-1">
-                          最后测试: {new Date(model.last_test_time).toLocaleString()} - {model.last_test_status === 'success' ? '成功' : '失败'}
+                          最后测试: {formatTime(model.last_test_time)} - {model.last_test_status === 'success' ? '成功' : '失败'}
                         </div>
                       )}
                     </div>

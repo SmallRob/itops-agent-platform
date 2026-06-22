@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1059,7 +1060,7 @@ ${serverInfo.disk_gb ? `磁盘大小：${serverInfo.disk_gb}GB` : ''}
                       {server.last_connected ? (
                         <span className="flex items-center gap-1 text-xs text-text-secondary">
                           <CheckCircle2 className="w-3 h-3 text-status-success" />
-                          最后连接: {new Date(server.last_connected).toLocaleDateString()}
+                          最后连接: {formatDate(server.last_connected)}
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-xs text-text-secondary">
@@ -1338,7 +1339,7 @@ ${serverInfo.disk_gb ? `磁盘大小：${serverInfo.disk_gb}GB` : ''}
                   <div className="flex items-center gap-2">
                     <Terminal className="w-4 h-4 text-text-secondary" />
                     <span className="text-xs text-text-secondary">
-                      {new Date(item.executed_at).toLocaleString()}
+                      {formatTime(item.executed_at)}
                     </span>
                   </div>
                   <span className={clsx(
@@ -1429,8 +1430,8 @@ ${serverInfo.disk_gb ? `磁盘大小：${serverInfo.disk_gb}GB` : ''}
                   </span>
                 </div>
                 <div className="text-xs text-text-secondary space-y-1">
-                  <p>开始: {check.started_at ? new Date(check.started_at).toLocaleString() : '-'}</p>
-                  <p>完成: {check.completed_at ? new Date(check.completed_at).toLocaleString() : '-'}</p>
+                  <p>开始: {check.started_at ? formatTime(check.started_at) : '-'}</p>
+                  <p>完成: {check.completed_at ? formatTime(check.completed_at) : '-'}</p>
                 </div>
                 {check.check_results && (
                   <details className="mt-3">

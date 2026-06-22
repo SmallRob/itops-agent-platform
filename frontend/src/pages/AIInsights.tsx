@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
+import { formatTime } from '../lib/date';
 import { TrendingUp, Clock, CheckCircle, BookOpen, BarChart3, AlertTriangle } from 'lucide-react';
 
 interface StatsCard {
@@ -190,12 +191,7 @@ export default function AIInsights() {
                             <div className="text-xs text-slate-400 mt-1 line-clamp-2">{rca.root_cause}</div>
                           )}
                           <div className="text-xs text-slate-500 mt-2">
-                            {new Date(rca.created_at).toLocaleString('zh-CN', {
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatTime(rca.created_at)}
                           </div>
                         </div>
                       </div>

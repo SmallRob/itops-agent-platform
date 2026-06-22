@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Search, Clock, AlertTriangle, Lightbulb } from 'lucide-react';
@@ -115,7 +116,7 @@ export default function RCADetail() {
                   <div>
                     <div className="text-sm text-text-secondary">创建时间</div>
                     <div className="font-medium text-text-primary">
-                      {new Date(detail.created_at).toLocaleString('zh-CN')}
+                      {formatTime(detail.created_at)}
                     </div>
                   </div>
                 </div>

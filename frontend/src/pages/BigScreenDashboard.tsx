@@ -770,10 +770,10 @@ export default function BigScreenDashboard() {
 
             <div className="text-right">
               <div className="text-3xl font-bold text-white font-mono">
-                {currentTime.toLocaleTimeString('zh-CN', { hour12: false })}
+                {currentTime.toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}
               </div>
               <div className="text-sm text-slate-400">
-                {currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}
+                {currentTime.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}
               </div>
             </div>
 

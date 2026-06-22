@@ -1,3 +1,4 @@
+import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Filter, Bell, Zap, Workflow, Database, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
@@ -158,9 +159,6 @@ export default function AlertMappings() {
     });
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
 
   return (
     <div className="h-full overflow-auto p-6">
