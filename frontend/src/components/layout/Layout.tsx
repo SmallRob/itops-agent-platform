@@ -21,6 +21,8 @@ import {
   Cog,
   LogOut,
   User as UserIcon,
+  Container,
+  Radio,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,6 +58,8 @@ const navigationGroups = [
     items: [
       { name: '服务器', href: '/server-mgmt', icon: Server },
       { name: '网络设备', href: '/network-mgmt', icon: Network },
+      { name: '容器管理', href: '/portainer', icon: Container },
+      { name: '端口监控', href: '/port-racker', icon: Radio },
     ]
   },
   {

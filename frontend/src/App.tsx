@@ -24,6 +24,8 @@ const ServerPage = lazy(() => import('./pages/ServerPage'));
 const NetworkDevicePage = lazy(() => import('./pages/NetworkDevicePage'));
 const ReportCenterPage = lazy(() => import('./pages/ReportCenterPage'));
 const SystemManagementPage = lazy(() => import('./pages/SystemManagementPage'));
+const PortainerPage = lazy(() => import('./pages/PortainerPage'));
+const PortRackerPage = lazy(() => import('./pages/PortRackerPage'));
 
 // ==================== 独立页面 ====================
 const Knowledge = lazy(() => import('./pages/Knowledge'));
@@ -120,6 +122,8 @@ function App() {
                     <Route path="auto-remediation" element={<SuspenseRoute><ProtectedRoute><AutoRemediationPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="server-mgmt" element={<SuspenseRoute><ProtectedRoute><ServerPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="network-mgmt" element={<SuspenseRoute><ProtectedRoute><NetworkDevicePage /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="portainer" element={<SuspenseRoute><ProtectedRoute><PortainerPage /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="port-racker" element={<SuspenseRoute><ProtectedRoute><PortRackerPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="report-center" element={<SuspenseRoute><ProtectedRoute><ReportCenterPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="system-mgmt" element={<SuspenseRoute><ProtectedRoute><SystemManagementPage /></ProtectedRoute></SuspenseRoute>} />
 
