@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, Sun, Moon, Lock, BookOpen, Upload, FileText, Globe, Wifi, Brain, Eye, EyeOff } from 'lucide-react';
+import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, Sun, Moon, Lock, BookOpen, Upload, FileText, Globe, Wifi, Brain, Eye, EyeOff, Plug, Radio, Container } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../hooks/useTheme';
 import api from '../lib/api';
@@ -496,10 +496,97 @@ export default function Settings() {
     },
   });
 
+  // 服务集成配置状态
+  const [portRackerConfig, setPortRackerConfig] = useState({
+    enabled: false,
+    apiUrl: '',
+    apiKey: '',
+    directUrl: '',
+  });
+  const [portRackerSaveStatus, setPortRackerSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [portRackerTestStatus, setPortRackerTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+
+  const [portainerConfig, setPortainerConfig] = useState({
+    enabled: false,
+    url: '',
+  });
+  const [portainerSaveStatus, setPortainerSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  useQuery({
+    queryKey: ['portRackerConfig'],
+    queryFn: async () => {
+      const res = await api.get('/api/port-racker/config');
+      if (res.data.data) {
+        setPortRackerConfig(res.data.data);
+      }
+      return res.data.data;
+    },
+  });
+
+  const portRackerConfigMutation = useMutation({
+    mutationFn: async (config: typeof portRackerConfig) => {
+      const res = await api.put('/api/port-racker/config', config);
+      return res.data;
+    },
+    onMutate: () => setPortRackerSaveStatus('saving'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portRackerConfig'] });
+      setPortRackerSaveStatus('saved');
+      setTimeout(() => setPortRackerSaveStatus('idle'), 2000);
+    },
+    onError: () => {
+      setPortRackerSaveStatus('error');
+      setTimeout(() => setPortRackerSaveStatus('idle'), 3000);
+    },
+  });
+
+  const portRackerHealthMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.get('/api/port-racker/health');
+      return res.data;
+    },
+    onMutate: () => setPortRackerTestStatus('testing'),
+    onSuccess: (data) => {
+      setPortRackerTestStatus(data.data?.reachable ? 'success' : 'error');
+    },
+    onError: () => {
+      setPortRackerTestStatus('error');
+    },
+  });
+
+  useQuery({
+    queryKey: ['portainerConfig'],
+    queryFn: async () => {
+      const res = await api.get('/api/portainer/config');
+      if (res.data.data) {
+        setPortainerConfig(res.data.data);
+      }
+      return res.data.data;
+    },
+  });
+
+  const portainerConfigMutation = useMutation({
+    mutationFn: async (config: typeof portainerConfig) => {
+      const res = await api.put('/api/portainer/config', config);
+      return res.data;
+    },
+    onMutate: () => setPortainerSaveStatus('saving'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portainerConfig'] });
+      setPortainerSaveStatus('saved');
+      setTimeout(() => setPortainerSaveStatus('idle'), 2000);
+    },
+    onError: () => {
+      setPortainerSaveStatus('error');
+      setTimeout(() => setPortainerSaveStatus('idle'), 3000);
+    },
+  });
+
   const tabs = [
     { id: 'models', name: 'AI模型管理', icon: Brain },
     { id: 'qanything', name: '知识库', icon: BookOpen },
     { id: 'notifications', name: '通知设置', icon: Bell },
+    { id: 'integrations', name: '服务集成', icon: Plug },
     { id: 'database', name: '数据库', icon: Database },
     { id: 'security', name: '安全设置', icon: Shield },
   ];
@@ -1258,6 +1345,206 @@ export default function Settings() {
                         )}
                         保存通知配置
                       </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'integrations' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+                      <Plug className="w-5 h-5" />
+                      服务集成配置
+                    </h3>
+                    <p className="text-sm text-text-secondary mb-6">
+                      配置外部服务的连接地址，避免硬编码到代码中
+                    </p>
+                  </div>
+
+                  {/* Port Racker 配置 */}
+                  <div className="bg-background rounded-lg p-6">
+                    <h4 className="font-medium text-text-primary mb-4 flex items-center gap-2">
+                      <Radio className="w-4 h-4" />
+                      端口监控 (Port Racker)
+                    </h4>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-text-primary">启用端口监控</p>
+                          <p className="text-xs text-text-secondary">启用后，系统将连接 Port Racker 服务进行端口扫描和监控</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={portRackerConfig.enabled}
+                            onChange={(e) => setPortRackerConfig({...portRackerConfig, enabled: e.target.checked})}
+                          />
+                          <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">服务地址 (API)</label>
+                        <input
+                          type="text"
+                          placeholder="http://192.168.1.100:19213"
+                          value={portRackerConfig.apiUrl}
+                          onChange={(e) => setPortRackerConfig({...portRackerConfig, apiUrl: e.target.value})}
+                          className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+                        />
+                        <p className="text-xs text-text-secondary mt-1">后端服务调用 Port Racker 的地址</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">直接访问地址</label>
+                        <input
+                          type="text"
+                          placeholder="http://192.168.1.100:19213"
+                          value={portRackerConfig.directUrl}
+                          onChange={(e) => setPortRackerConfig({...portRackerConfig, directUrl: e.target.value})}
+                          className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+                        />
+                        <p className="text-xs text-text-secondary mt-1">前端直接访问 Port Racker 的地址（用于浏览器跳转）</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">API Key（可选）</label>
+                        <input
+                          type="password"
+                          placeholder="如果服务需要认证，请填写 API Key"
+                          value={portRackerConfig.apiKey}
+                          onChange={(e) => setPortRackerConfig({...portRackerConfig, apiKey: e.target.value})}
+                          className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          onClick={() => portRackerHealthMutation.mutate()}
+                          disabled={portRackerTestStatus === 'testing'}
+                          className="px-4 py-2 bg-surface border border-border text-text-primary rounded-lg hover:bg-surface/80 transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {portRackerTestStatus === 'testing' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Wifi className="w-4 h-4" />
+                          )}
+                          测试连接
+                        </button>
+                        {portRackerTestStatus === 'success' && (
+                          <span className="text-sm text-status-success flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4" />
+                            连接成功
+                          </span>
+                        )}
+                        {portRackerTestStatus === 'error' && (
+                          <span className="text-sm text-status-failed flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            无法连接
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-border">
+                        <div className="flex items-center gap-2">
+                          {portRackerSaveStatus === 'saving' && (
+                            <Loader2 className="w-4 h-4 animate-spin text-text-secondary" />
+                          )}
+                          {portRackerSaveStatus === 'saved' && (
+                            <p className="text-xs text-status-success flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              已保存
+                            </p>
+                          )}
+                          {portRackerSaveStatus === 'error' && (
+                            <p className="text-xs text-status-failed flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              保存失败
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => portRackerConfigMutation.mutate(portRackerConfig)}
+                          disabled={portRackerSaveStatus === 'saving'}
+                          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {portRackerSaveStatus === 'saving' && (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          )}
+                          保存配置
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Portainer 配置 */}
+                  <div className="bg-background rounded-lg p-6">
+                    <h4 className="font-medium text-text-primary mb-4 flex items-center gap-2">
+                      <Container className="w-4 h-4" />
+                      容器管理 (Portainer)
+                    </h4>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-text-primary">启用容器管理</p>
+                          <p className="text-xs text-text-secondary">启用后，导航中将显示容器管理入口</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={portainerConfig.enabled}
+                            onChange={(e) => setPortainerConfig({...portainerConfig, enabled: e.target.checked})}
+                          />
+                          <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">Portainer 访问地址</label>
+                        <input
+                          type="text"
+                          placeholder="http://192.168.1.100:19100"
+                          value={portainerConfig.url}
+                          onChange={(e) => setPortainerConfig({...portainerConfig, url: e.target.value})}
+                          className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+                        />
+                        <p className="text-xs text-text-secondary mt-1">Portainer Web 界面的完整访问地址</p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-border">
+                        <div className="flex items-center gap-2">
+                          {portainerSaveStatus === 'saving' && (
+                            <Loader2 className="w-4 h-4 animate-spin text-text-secondary" />
+                          )}
+                          {portainerSaveStatus === 'saved' && (
+                            <p className="text-xs text-status-success flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              已保存
+                            </p>
+                          )}
+                          {portainerSaveStatus === 'error' && (
+                            <p className="text-xs text-status-failed flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              保存失败
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => portainerConfigMutation.mutate(portainerConfig)}
+                          disabled={portainerSaveStatus === 'saving'}
+                          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {portainerSaveStatus === 'saving' && (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          )}
+                          保存配置
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

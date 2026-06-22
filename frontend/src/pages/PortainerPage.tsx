@@ -1,33 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
-import { ExternalLink, Container, RefreshCw, AlertCircle, CheckCircle2, Monitor } from 'lucide-react';
+import { ExternalLink, Container, RefreshCw, AlertCircle, CheckCircle2, Monitor, Settings } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
-
-function getPortainerUrl(): string {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:19100/`;
-}
+import api from '../lib/api';
 
 export default function PortainerPage() {
   const { theme } = useTheme();
   const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [iframeError, setIframeError] = useState(false);
+  const [portainerUrl, setPortainerUrl] = useState('');
+  const [configLoaded, setConfigLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const portainerUrl = getPortainerUrl();
 
   useEffect(() => {
-    checkPortainerStatus();
-    const timer = setInterval(checkPortainerStatus, 30000);
-    return () => clearInterval(timer);
+    loadConfig();
   }, []);
 
-  const checkPortainerStatus = async () => {
+  const loadConfig = async () => {
+    try {
+      const res = await api.get('/api/portainer/config');
+      const url = res.data.data?.url || '';
+      setPortainerUrl(url);
+      setConfigLoaded(true);
+      if (url) {
+        checkPortainerStatus(url);
+      }
+    } catch {
+      setConfigLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!portainerUrl) return;
+    const timer = setInterval(() => checkPortainerStatus(portainerUrl), 30000);
+    return () => clearInterval(timer);
+  }, [portainerUrl]);
+
+  const checkPortainerStatus = async (url?: string) => {
+    const targetUrl = url || portainerUrl;
+    if (!targetUrl) return;
     setStatus('checking');
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${portainerUrl}api/system/status`, {
+      const res = await fetch(`${targetUrl}/api/system/status`, {
         method: 'GET',
         mode: 'cors',
         signal: controller.signal,
@@ -42,6 +58,43 @@ export default function PortainerPage() {
   const handleIframeError = () => {
     setIframeError(true);
   };
+
+  if (configLoaded && !portainerUrl) {
+    return (
+      <div className="h-full flex items-center justify-center p-8">
+        <div className={clsx(
+          'max-w-md w-full rounded-2xl p-8 text-center border',
+          theme === 'dark'
+            ? 'bg-slate-800/50 border-slate-700/50'
+            : 'bg-white border-gray-200 shadow-xl'
+        )}>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
+            <Settings className="w-8 h-8 text-white" />
+          </div>
+          <h2 className={clsx('text-xl font-bold mb-2',
+            theme === 'dark' ? 'text-white' : 'text-gray-900'
+          )}>
+            未配置 Portainer 地址
+          </h2>
+          <p className={clsx('text-sm mb-6',
+            theme === 'dark' ? 'text-slate-400' : 'text-gray-500'
+          )}>
+            请前往 设置 &gt; 服务集成 &gt; 容器管理 (Portainer) 配置访问地址
+          </p>
+          <a
+            href="/settings?tab=integrations"
+            className={clsx(
+              'inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-colors',
+              'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/25'
+            )}
+          >
+            <Settings className="w-4 h-4" />
+            前往配置
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -89,7 +142,7 @@ export default function PortainerPage() {
 
             {/* Refresh */}
             <button
-              onClick={checkPortainerStatus}
+              onClick={() => checkPortainerStatus()}
               className={clsx(
                 'p-2 rounded-lg transition-colors',
                 theme === 'dark'

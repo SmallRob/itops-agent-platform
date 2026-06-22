@@ -10,10 +10,10 @@ interface PortRackerConfig {
 }
 
 const DEFAULT_CONFIG: PortRackerConfig = {
-  enabled: true,
-  apiUrl: 'http://20.195.24.100:19213',
+  enabled: false,
+  apiUrl: '',
   apiKey: '',
-  directUrl: 'http://20.195.24.100:19213',
+  directUrl: '',
 };
 
 class PortRackerService {

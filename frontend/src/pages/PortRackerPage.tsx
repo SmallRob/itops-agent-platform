@@ -9,8 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import api from '../lib/api';
 
 function getPortRackerDirectUrl(configData?: { directUrl?: string }): string {
-  if (configData?.directUrl) return configData.directUrl;
-  return `${window.location.protocol}//${window.location.hostname}:19213/`;
+  return configData?.directUrl || '';
 }
 
 interface PortInfo {
