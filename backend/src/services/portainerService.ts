@@ -1,3 +1,4 @@
+import axios from 'axios';
 import db from '../models/database';
 import { logger } from '../utils/logger';
 
@@ -49,6 +50,19 @@ class PortainerService {
         .run(JSON.stringify(config));
     }
     this.config = config;
+  }
+
+  async healthCheck(): Promise<{ reachable: boolean; data?: any }> {
+    const config = this.getConfig();
+    if (!config.enabled || !config.url) return { reachable: false };
+
+    try {
+      const baseUrl = config.url.replace(/\/+$/, '');
+      const res = await axios.get(`${baseUrl}/api/system/status`, { timeout: 10000 });
+      return { reachable: true, data: res.data };
+    } catch {
+      return { reachable: false };
+    }
   }
 }
 

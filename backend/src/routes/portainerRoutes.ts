@@ -15,6 +15,15 @@ router.get('/config', (_req: Request, res: Response) => {
   });
 });
 
+router.get('/health', async (_req: Request, res: Response) => {
+  try {
+    const result = await portainerService.healthCheck();
+    res.json({ success: true, data: result });
+  } catch {
+    res.json({ success: true, data: { reachable: false } });
+  }
+});
+
 router.put('/config', (req: Request, res: Response) => {
   try {
     const { enabled, url } = req.body;

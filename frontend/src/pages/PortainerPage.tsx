@@ -23,7 +23,7 @@ export default function PortainerPage() {
       setPortainerUrl(url);
       setConfigLoaded(true);
       if (url) {
-        checkPortainerStatus(url);
+        checkPortainerStatus();
       }
     } catch {
       setConfigLoaded(true);
@@ -32,24 +32,15 @@ export default function PortainerPage() {
 
   useEffect(() => {
     if (!portainerUrl) return;
-    const timer = setInterval(() => checkPortainerStatus(portainerUrl), 30000);
+    const timer = setInterval(() => checkPortainerStatus(), 30000);
     return () => clearInterval(timer);
   }, [portainerUrl]);
 
-  const checkPortainerStatus = async (url?: string) => {
-    const targetUrl = url || portainerUrl;
-    if (!targetUrl) return;
+  const checkPortainerStatus = async () => {
     setStatus('checking');
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${targetUrl}/api/system/status`, {
-        method: 'GET',
-        mode: 'cors',
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      setStatus(res.ok ? 'online' : 'offline');
+      const res = await api.get('/api/portainer/health');
+      setStatus(res.data.data?.reachable ? 'online' : 'offline');
     } catch {
       setStatus('offline');
     }
