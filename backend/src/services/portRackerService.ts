@@ -72,7 +72,7 @@ class PortRackerService {
       const res = await axios.post(`${config.apiUrl}/api/auth/login`, {
         username: config.username,
         password: config.password,
-      }, { timeout: 10000 });
+      }, { timeout: 30000 });
 
       const setCookie = res.headers['set-cookie'];
       if (setCookie && setCookie.length > 0) {
@@ -102,7 +102,7 @@ class PortRackerService {
       }
       this.client = axios.create({
         baseURL: config.apiUrl,
-        timeout: 10000,
+        timeout: 30000,
         headers,
       });
     }
