@@ -502,6 +502,8 @@ export default function Settings() {
     apiUrl: '',
     apiKey: '',
     directUrl: '',
+    username: '',
+    password: '',
   });
   const [portRackerSaveStatus, setPortRackerSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [portRackerTestStatus, setPortRackerTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -1419,6 +1421,33 @@ export default function Settings() {
                           onChange={(e) => setPortRackerConfig({...portRackerConfig, apiKey: e.target.value})}
                           className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
                         />
+                      </div>
+
+                      <div className="border-t border-border pt-4">
+                        <p className="text-sm font-medium text-text-secondary mb-3">登录凭据（用于会话认证）</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-text-secondary mb-1">用户名</label>
+                            <input
+                              type="text"
+                              placeholder="admin"
+                              value={portRackerConfig.username}
+                              onChange={(e) => setPortRackerConfig({...portRackerConfig, username: e.target.value})}
+                              className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-text-secondary mb-1">密码</label>
+                            <input
+                              type="password"
+                              placeholder="密码"
+                              value={portRackerConfig.password}
+                              onChange={(e) => setPortRackerConfig({...portRackerConfig, password: e.target.value})}
+                              className="w-full px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-text-secondary mt-2">当 API Key 未配置时，系统将使用用户名密码进行会话认证</p>
                       </div>
 
                       <div className="flex items-center gap-3 pt-2">

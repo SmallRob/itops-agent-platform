@@ -7,6 +7,8 @@ interface PortRackerConfig {
   apiUrl: string;
   apiKey: string;
   directUrl: string;
+  username: string;
+  password: string;
 }
 
 const DEFAULT_CONFIG: PortRackerConfig = {
@@ -14,11 +16,14 @@ const DEFAULT_CONFIG: PortRackerConfig = {
   apiUrl: '',
   apiKey: '',
   directUrl: '',
+  username: '',
+  password: '',
 };
 
 class PortRackerService {
   private client: AxiosInstance | null = null;
   private config: PortRackerConfig | null = null;
+  private sessionCookie: string | null = null;
 
   private loadConfig(): PortRackerConfig {
     try {
@@ -56,6 +61,34 @@ class PortRackerService {
     }
     this.config = config;
     this.client = null;
+    this.sessionCookie = null;
+  }
+
+  private async login(): Promise<boolean> {
+    const config = this.getConfig();
+    if (!config.username || !config.password) return false;
+
+    try {
+      const res = await axios.post(`${config.apiUrl}/api/auth/login`, {
+        username: config.username,
+        password: config.password,
+      }, { timeout: 10000 });
+
+      const setCookie = res.headers['set-cookie'];
+      if (setCookie && setCookie.length > 0) {
+        const match = setCookie[0].match(/^(portracker\.sid=[^;]+)/);
+        if (match) {
+          this.sessionCookie = match[1];
+          logger.info('PortRacker login successful');
+          return true;
+        }
+      }
+      logger.warn('PortRacker login succeeded but no session cookie received');
+      return false;
+    } catch (error: any) {
+      logger.error('PortRacker login failed:', error.message);
+      return false;
+    }
   }
 
   private getClient(): AxiosInstance | null {
@@ -63,20 +96,53 @@ class PortRackerService {
     if (!config.enabled || !config.apiUrl) return null;
 
     if (!this.client) {
+      const headers: Record<string, string> = {};
+      if (config.apiKey) {
+        headers['X-API-Key'] = config.apiKey;
+      }
       this.client = axios.create({
         baseURL: config.apiUrl,
         timeout: 10000,
-        headers: config.apiKey ? { 'X-API-Key': config.apiKey } : {},
+        headers,
       });
     }
     return this.client;
+  }
+
+  private async requestWithAuth<T>(fn: (client: AxiosInstance, headers: Record<string, string>) => Promise<T>): Promise<T> {
+    const client = this.getClient();
+    if (!client) throw new Error('PortRacker 未配置或已禁用');
+
+    const config = this.getConfig();
+    const buildHeaders = (): Record<string, string> => {
+      const h: Record<string, string> = {};
+      if (this.sessionCookie) h['Cookie'] = this.sessionCookie;
+      else if (config.apiKey) h['X-API-Key'] = config.apiKey;
+      return h;
+    };
+
+    try {
+      return await fn(client, buildHeaders());
+    } catch (error: any) {
+      if (error.response?.status === 401 && config.username && config.password) {
+        const loggedIn = await this.login();
+        if (loggedIn) {
+          return await fn(client, buildHeaders());
+        }
+      }
+      throw error;
+    }
   }
 
   async healthCheck(): Promise<{ reachable: boolean; data?: any }> {
     try {
       const client = this.getClient();
       if (!client) return { reachable: false };
-      const res = await client.get('/api/health');
+      const config = this.getConfig();
+      const headers: Record<string, string> = {};
+      if (this.sessionCookie) headers['Cookie'] = this.sessionCookie;
+      else if (config.apiKey) headers['X-API-Key'] = config.apiKey;
+      const res = await client.get('/api/health', { headers });
       return { reachable: true, data: res.data };
     } catch {
       return { reachable: false };
@@ -84,52 +150,52 @@ class PortRackerService {
   }
 
   async getPorts(): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get('/api/ports');
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get('/api/ports', { headers });
+      return res.data;
+    });
   }
 
   async getAllPorts(): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get('/api/all-ports');
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get('/api/all-ports', { headers });
+      return res.data;
+    });
   }
 
   async getServices(): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get('/api/services');
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get('/api/services', { headers });
+      return res.data;
+    });
   }
 
   async getServers(): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get('/api/servers');
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get('/api/servers', { headers });
+      return res.data;
+    });
   }
 
   async pingPort(host: string, port: number): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get('/api/ping', { params: { host, port } });
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get('/api/ping', { params: { host, port }, headers });
+      return res.data;
+    });
   }
 
   async scanServer(serverId: string): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get(`/api/servers/${serverId}/scan`);
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get(`/api/servers/${serverId}/scan`, { headers });
+      return res.data;
+    });
   }
 
   async getVersion(): Promise<any> {
-    const client = this.getClient();
-    if (!client) throw new Error('PortRacker 未配置或已禁用');
-    const res = await client.get('/api/version');
-    return res.data;
+    return this.requestWithAuth(async (client, headers) => {
+      const res = await client.get('/api/version', { headers });
+      return res.data;
+    });
   }
 }
 

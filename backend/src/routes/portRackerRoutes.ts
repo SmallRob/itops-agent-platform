@@ -13,19 +13,22 @@ router.get('/config', (_req: Request, res: Response) => {
       apiUrl: config.apiUrl,
       directUrl: config.directUrl,
       hasApiKey: !!config.apiKey,
+      hasCredentials: !!(config.username && config.password),
     },
   });
 });
 
 router.put('/config', (req: Request, res: Response) => {
   try {
-    const { enabled, apiUrl, apiKey, directUrl } = req.body;
+    const { enabled, apiUrl, apiKey, directUrl, username, password } = req.body;
     const config = portRackerService.getConfig();
     portRackerService.saveConfig({
       enabled: enabled ?? config.enabled,
       apiUrl: apiUrl ?? config.apiUrl,
       apiKey: apiKey ?? config.apiKey,
       directUrl: directUrl ?? config.directUrl,
+      username: (username && username.trim()) || config.username,
+      password: (password && password.trim()) || config.password,
     });
     res.json({ success: true, message: '配置已保存' });
   } catch (error) {
