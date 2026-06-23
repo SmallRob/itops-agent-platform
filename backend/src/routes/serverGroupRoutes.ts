@@ -30,7 +30,11 @@ router.get('/tree', (_req, res) => {
       .map((g) => ({ ...g, children: buildTree(g.id as string) }));
   }
 
-  res.json({ success: true, data: buildTree(null) });
+  // 返回根分组的子分组（跳过根分组本身）
+  const rootGroups = groups.filter((g) => g.parent_id === null);
+  const tree = rootGroups.flatMap((g) => ({ ...g, children: buildTree(g.id as string) }));
+
+  res.json({ success: true, data: tree });
 });
 
 router.post('/', (req, res) => {

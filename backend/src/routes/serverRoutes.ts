@@ -49,6 +49,7 @@ router.post('/', validateBody(serverSchemas.createServer), requireRole('admin', 
   try {
     const { name, hostname, port, username, password, private_key, use_ssh_key, description, os_type, ssh_key_id } = req.body;
     const tags = (req.body as Record<string, unknown>).tags;
+    const group_ids = (req.body as Record<string, unknown>).group_ids as string[] | undefined;
     const tagsJson = tags ? JSON.stringify(tags) : null;
 
     const encryptedPassword = password ? encrypt(password) : null;
@@ -59,6 +60,14 @@ router.post('/', validateBody(serverSchemas.createServer), requireRole('admin', 
       `INSERT INTO servers (id, name, hostname, port, username, password, private_key, use_ssh_key, description, tags, os_type, ssh_key_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(id, name, hostname, port || 22, username, encryptedPassword, encryptedPrivateKey, use_ssh_key ? 1 : 0, description || null, tagsJson, os_type || 'linux', ssh_key_id || null);
+
+    // 处理分组关联
+    if (group_ids && Array.isArray(group_ids) && group_ids.length > 0) {
+      const insertMapping = db.prepare('INSERT OR IGNORE INTO server_group_mapping (server_id, group_id) VALUES (?, ?)');
+      for (const groupId of group_ids) {
+        insertMapping.run(id, groupId);
+      }
+    }
 
     res.json({ success: true, data: { id } });
   } catch {
@@ -114,6 +123,20 @@ router.put('/:id', validateParams(serverSchemas.serverId), validateBody(serverSc
       use_ssh_key !== undefined ? (use_ssh_key ? 1 : 0) : undefined,
       description, tagsJson, enabled, os_type, ssh_key_id !== undefined ? ssh_key_id : undefined, req.params.id
     );
+
+    // 处理分组关联
+    const group_ids = (req.body as Record<string, unknown>).group_ids;
+    if (group_ids !== undefined && Array.isArray(group_ids)) {
+      // 删除旧的分组关联
+      db.prepare('DELETE FROM server_group_mapping WHERE server_id = ?').run(req.params.id);
+      // 插入新的分组关联
+      if (group_ids.length > 0) {
+        const insertMapping = db.prepare('INSERT OR IGNORE INTO server_group_mapping (server_id, group_id) VALUES (?, ?)');
+        for (const groupId of group_ids) {
+          insertMapping.run(req.params.id, groupId);
+        }
+      }
+    }
 
     res.json({ success: true });
   } catch {

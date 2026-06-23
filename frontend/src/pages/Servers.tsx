@@ -99,7 +99,8 @@ export default function Servers() {
     tags: '',
     os_type: 'linux' as 'linux' | 'windows',
     vnc_port: 5900,
-    vnc_password: ''
+    vnc_password: '',
+    group_ids: [] as string[]
   });
   const [command, setCommand] = useState('');
   const [commandResult, setCommandResult] = useState<CommandResult | null>(null);
@@ -289,7 +290,8 @@ export default function Servers() {
       const payload = {
         ...data,
         tags: data.tags ? data.tags.split(',').map((t: string) => t.trim()) : [],
-        ssh_key_id: selectedSshKeyId || undefined
+        ssh_key_id: selectedSshKeyId || undefined,
+        group_ids: data.group_ids || []
       };
       const res = await api.post('/api/servers', payload);
       return res.data;
@@ -310,7 +312,8 @@ export default function Servers() {
       const payload: Record<string, unknown> = {
         ...data,
         tags: data.tags ? data.tags.split(',').map((t: string) => t.trim()) : undefined,
-        ssh_key_id: selectedSshKeyId || undefined
+        ssh_key_id: selectedSshKeyId || undefined,
+        group_ids: data.group_ids || []
       };
       // 编辑模式下 private_key 为空则不发送，避免覆盖已有密钥
       if (data.private_key) {
@@ -467,7 +470,8 @@ export default function Servers() {
       tags: '',
       os_type: 'linux' as 'linux' | 'windows',
       vnc_port: 5900,
-      vnc_password: ''
+      vnc_password: '',
+      group_ids: []
     });
     setSelectedSshKeyId('');
     setSshKeySearchQuery('');
@@ -510,7 +514,8 @@ export default function Servers() {
       tags: server.tags ? server.tags.join(', ') : '',
       os_type: (server as any).os_type || 'linux',
       vnc_port: (server as any).vnc_port || 5900,
-      vnc_password: ''
+      vnc_password: '',
+      group_ids: server.groups ? server.groups.map((g: any) => g.id) : []
     });
     setIsModalOpen(true);
   };
@@ -837,12 +842,19 @@ ${serverInfo.disk_gb ? `磁盘大小：${serverInfo.disk_gb}GB` : ''}
               <div className="w-56 flex-shrink-0 bg-surface border border-border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-text-primary">服务器分组</h3>
-                  <button
-                    onClick={() => setSelectedGroupId(null)}
-                    className="text-xs text-text-secondary hover:text-text-primary"
-                  >
-                    清除筛选
-                  </button>
+                </div>
+                <div
+                  className={clsx(
+                    'flex items-center gap-2 py-1.5 px-2 rounded cursor-pointer transition-colors text-sm mb-1',
+                    !selectedGroupId
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-background text-text-secondary'
+                  )}
+                  onClick={() => setSelectedGroupId(null)}
+                >
+                  <Server className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>全部服务器</span>
+                  <span className="ml-auto text-xs text-text-secondary">({safeServers.length})</span>
                 </div>
                 {groupsData && groupsData.length > 0 ? (
                   <GroupTree groups={groupsData} />
@@ -1886,6 +1898,68 @@ ${serverInfo.disk_gb ? `磁盘大小：${serverInfo.disk_gb}GB` : ''}
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">分组</label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto bg-background border border-border rounded-lg p-3">
+                    {groupsData && groupsData.length > 0 ? (
+                      groupsData.map((group) => (
+                        <div key={group.id}>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.group_ids.includes(group.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, group_ids: [...formData.group_ids, group.id] });
+                                } else {
+                                  setFormData({ ...formData, group_ids: formData.group_ids.filter(id => id !== group.id) });
+                                }
+                              }}
+                              className="rounded border-border"
+                            />
+                            <span className="text-sm text-text-primary">{group.name}</span>
+                          </label>
+                          {group.children && group.children.length > 0 && (
+                            <div className="ml-6 space-y-2">
+                              {group.children.map((child: ServerGroup) => (
+                                <label key={child.id} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.group_ids.includes(child.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setFormData({ ...formData, group_ids: [...formData.group_ids, child.id] });
+                                      } else {
+                                        setFormData({ ...formData, group_ids: formData.group_ids.filter(id => id !== child.id) });
+                                      }
+                                    }}
+                                    className="rounded border-border"
+                                  />
+                                  <span className="text-sm text-text-primary">{child.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-text-tertiary">暂无分组，请先创建分组</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGroup(null);
+                        setGroupFormData({ name: '', description: '', parent_id: '' });
+                        setIsGroupModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors w-full"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      新建分组
+                    </button>
+                  </div>
+                </div>
+
                 <div className="relative">
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     标签
@@ -2100,10 +2174,13 @@ ${serverInfo.disk_gb ? `磁盘大小：${serverInfo.disk_gb}GB` : ''}
                     onChange={(e) => setGroupFormData({ ...groupFormData, parent_id: e.target.value })}
                     className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-text-primary"
                   >
-                    <option value="">无 (根分组)</option>
-                    {(groupsData || []).map((g) => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
+                    <option value="">无 (一级分组)</option>
+                    {(groupsData || []).flatMap((g) => [
+                      <option key={g.id} value={g.id}>{g.name}</option>,
+                      ...(g.children || []).map((child: ServerGroup) => (
+                        <option key={child.id} value={child.id}>&nbsp;&nbsp;└ {child.name}</option>
+                      ))
+                    ])}
                   </select>
                 </div>
                 <div>

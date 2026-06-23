@@ -262,13 +262,33 @@ export async function executeDbskiter(options: DbskiterOptions): Promise<Dbskite
         };
     } catch (error: unknown) {
         const duration = Date.now() - startTime;
-        const errMsg = error instanceof Error ? error.message : String(error);
+
+        let errMsg: string;
+        let errorStdout = '';
+        let errorStderr = '';
+
+        if (error instanceof Error) {
+            const execErr = error as Error & { stdout?: string | Buffer; stderr?: string | Buffer; code?: string; killed?: boolean };
+            errorStdout = typeof execErr.stdout === 'string' ? execErr.stdout : (execErr.stdout ? execErr.stdout.toString() : '');
+            errorStderr = typeof execErr.stderr === 'string' ? execErr.stderr : (execErr.stderr ? execErr.stderr.toString() : '');
+
+            if (execErr.killed) {
+                errMsg = `命令执行超时（${timeout / 1000}秒）`;
+            } else if (errorStderr) {
+                errMsg = errorStderr.substring(0, 500);
+            } else {
+                errMsg = execErr.message || '命令执行失败';
+            }
+        } else {
+            errMsg = typeof error === 'object' ? JSON.stringify(error) : String(error);
+        }
+
         logger.error('dbskiter 执行失败:', { error: errMsg, args: safeArgs });
 
         return {
             success: false,
-            stdout: '',
-            stderr: errMsg,
+            stdout: errorStdout.substring(0, 5000),
+            stderr: errorStderr.substring(0, 2000),
             duration,
             error: errMsg,
         };
