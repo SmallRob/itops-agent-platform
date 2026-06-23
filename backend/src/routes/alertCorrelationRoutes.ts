@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { alertCorrelationService } from '../services/alertCorrelationService';
+import { alertCorrelationService } from '@services/alert';
 import { requireRole } from '../middleware/auth';
 import { logger } from '../utils/logger';
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { networkDiscoveryService } from '../services/networkDiscoveryService';
+import { networkDiscoveryService } from '@services/network';
 import { requireRole } from '../middleware/auth';
 import { logger } from '../utils/logger';
 

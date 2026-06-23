@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { topologyService } from '../services/topologyService';
+import { topologyService } from '@services/network';
 
 const router = Router();
 

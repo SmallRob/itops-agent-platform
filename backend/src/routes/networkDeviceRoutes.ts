@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { networkDeviceService } from '../services/networkDeviceService';
-import { networkInspectionService } from '../services/networkInspectionService';
-import { networkCommandGenerator } from '../services/networkCommandGenerator';
-import { snmpPollingService } from '../services/snmpPollingService';
+import { networkDeviceService } from '@services/network';
+import { networkInspectionService } from '@services/network';
+import { networkCommandGenerator } from '@services/network';
+import { snmpPollingService } from '@services/network';
 import { logger } from '../utils/logger';
 import { requireRole } from '../middleware/auth';
 

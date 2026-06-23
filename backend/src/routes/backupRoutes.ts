@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { backupService } from '../services/backupService';
+import { backupService } from '@services/backup';
 import { logger } from '../utils/logger';
 import { requireRole } from '../middleware/auth';
 import multer from 'multer';

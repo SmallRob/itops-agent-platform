@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { remediationService } from '../services/remediationService';
+import { remediationService } from '@services/ai';
 import { logger } from '../utils/logger';
 import db from '../models/database';
 import { authenticateToken as authenticate } from '../middleware/auth';

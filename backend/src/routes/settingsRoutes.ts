@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import db from '../models/database';
 import { safeLog, safeError, maskApiKey } from '../utils/sensitiveMask';
 import { getApiKey, getModelId, getApiBase } from '../utils/apiConfig';
-import { credentialService } from '../services/credentialService';
+import { credentialService } from '@services/security';
 
 const router = Router();
 

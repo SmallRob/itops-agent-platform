@@ -26,6 +26,9 @@ COPY backend/package.json backend/package-lock.json ./
 # Install all dependencies and build native modules
 RUN npm ci
 
+# Install tsconfig-paths for path alias support
+RUN npm install tsconfig-paths
+
 # Copy source code
 COPY backend/ ./
 
@@ -104,5 +107,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Use entrypoint script for proper volume permission handling
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-# Start the application
-CMD ["node", "dist/app.js"]
+# Start the application with tsconfig-paths support
+CMD ["node", "-r", "tsconfig-paths/register", "dist/app.js"]

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import db from '../models/database';
 import { requireRole } from '../middleware/auth';
-import { resumeWorkflow, rejectWorkflow } from '../services/workflowExecutor';
+import { resumeWorkflow, rejectWorkflow } from '@services/workflow';
 import type { ApprovalRequest } from '../types';
 
 const router = Router();

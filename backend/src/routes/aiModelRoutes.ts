@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { requireRole } from '../middleware/auth';
-import * as aiModelService from '../services/aiModelService';
+import { getEnabledModels, getAllModels, getDefaultModel, getModelById, createModel, reorderModels, updateModel, deleteModel, testModelConnectivity } from '@services/ai';
 
 const router = Router();
 
@@ -11,9 +11,9 @@ router.get('/', (req: Request, res: Response) => {
     
     let models;
     if (enabled === 'true') {
-      models = aiModelService.getEnabledModels();
+      models = getEnabledModels();
     } else {
-      models = aiModelService.getAllModels();
+      models = getAllModels();
     }
     
     res.json({ success: true, data: models });
@@ -24,7 +24,7 @@ router.get('/', (req: Request, res: Response) => {
 
 router.get('/default', (req: Request, res: Response) => {
   try {
-    const defaultModel = aiModelService.getDefaultModel();
+    const defaultModel = getDefaultModel();
     
     if (!defaultModel) {
       return res.status(404).json({ success: false, error: 'No default model found' });
@@ -38,7 +38,7 @@ router.get('/default', (req: Request, res: Response) => {
 
 router.get('/:id', (req: Request, res: Response) => {
   try {
-    const model = aiModelService.getModelById(req.params.id);
+    const model = getModelById(req.params.id);
     
     if (!model) {
       return res.status(404).json({ success: false, error: 'Model not found' });
@@ -68,7 +68,7 @@ router.post('/', requireRole('admin'), (req: Request, res: Response) => {
       });
     }
     
-    const model = aiModelService.createModel({
+    const model = createModel({
       name,
       provider_type,
       model_id,
@@ -95,7 +95,7 @@ router.put('/reorder', requireRole('admin'), (req: Request, res: Response) => {
       });
     }
     
-    aiModelService.reorderModels(modelIds);
+    reorderModels(modelIds);
     
     res.json({ success: true, message: 'Models reordered successfully' });
   } catch (error) {
@@ -108,7 +108,7 @@ router.put('/:id', requireRole('admin'), (req: Request, res: Response) => {
   try {
     const { name, provider_type, model_id, api_key, api_base, enabled, is_default, tags } = req.body;
     
-    const model = aiModelService.updateModel(req.params.id, {
+    const model = updateModel(req.params.id, {
       name,
       provider_type,
       model_id,
@@ -128,7 +128,7 @@ router.put('/:id', requireRole('admin'), (req: Request, res: Response) => {
 
 router.delete('/:id', requireRole('admin'), (req: Request, res: Response) => {
   try {
-    aiModelService.deleteModel(req.params.id);
+    deleteModel(req.params.id);
     
     res.json({ success: true, message: 'Model deleted successfully' });
   } catch (error) {
@@ -139,7 +139,7 @@ router.delete('/:id', requireRole('admin'), (req: Request, res: Response) => {
 
 router.post('/:id/test', async (req: Request, res: Response) => {
   try {
-    const result = await aiModelService.testModelConnectivity(req.params.id);
+    const result = await testModelConnectivity(req.params.id);
     
     res.json({
       success: result.success,

@@ -19,7 +19,32 @@
     "declarationMap": true,
     "sourceMap": true,
     "moduleResolution": "node10",
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "5.0",
+    "baseUrl": ".",
+    "paths": {
+      "@services/*": ["src/services/*"],
+      "@services/agent/*": ["src/services/agent/*"],
+      "@services/alert/*": ["src/services/alert/*"],
+      "@services/ai/*": ["src/services/ai/*"],
+      "@services/network/*": ["src/services/network/*"],
+      "@services/server/*": ["src/services/server/*"],
+      "@services/database/*": ["src/services/database/*"],
+      "@services/workflow/*": ["src/services/workflow/*"],
+      "@services/report/*": ["src/services/report/*"],
+      "@services/knowledge/*": ["src/services/knowledge/*"],
+      "@services/notification/*": ["src/services/notification/*"],
+      "@services/security/*": ["src/services/security/*"],
+      "@services/audit/*": ["src/services/audit/*"],
+      "@services/backup/*": ["src/services/backup/*"],
+      "@services/monitor/*": ["src/services/monitor/*"],
+      "@services/foundation/*": ["src/services/foundation/*"],
+      "@models/*": ["src/models/*"],
+      "@routes/*": ["src/routes/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@utils/*": ["src/utils/*"],
+      "@types/*": ["src/types/*"],
+      "@websocket/*": ["src/websocket/*"]
+    }
   },
   "include": [
     "src/**/*"

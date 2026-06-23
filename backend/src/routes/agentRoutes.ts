@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import db from '../models/database';
-import { executeAgentWithLLM } from '../services/llmService';
-import { executeAgentNode } from '../services/agentExecutor';
+import { executeAgentWithLLM } from '@services/ai';
+import { executeAgentNode } from '@services/agent';
 import { requireRole } from '../middleware/auth';
 
 const router = Router();

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { changeService } from '../services/changeService';
+import { changeService } from '@services/audit';
 
 const router = Router();
 

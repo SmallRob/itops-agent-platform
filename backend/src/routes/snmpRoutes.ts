@@ -2,10 +2,10 @@ import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import db from '../models/database';
 import { logger } from '../utils/logger';
-import { snmpService, SnmpVersion } from '../services/snmpService';
-import { snmpTrapService } from '../services/snmpTrapService';
-import { encrypt, decrypt } from '../services/encryptionService';
-import { SYSTEM_OIDS, IF_MIB_OIDS, VENDOR_OIDS } from '../services/snmpOidRegistry';
+import { snmpService, SnmpVersion } from '@services/network';
+import { snmpTrapService } from '@services/network';
+import { encrypt, decrypt } from '@services/security';
+import { SYSTEM_OIDS, IF_MIB_OIDS, VENDOR_OIDS } from '@services/network';
 
 const router = Router();
 

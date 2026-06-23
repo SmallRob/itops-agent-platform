@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { credentialService } from '../services/credentialService';
+import { credentialService } from '@services/security';
 
 interface SettingsRecord {
   value: string;

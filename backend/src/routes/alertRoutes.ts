@@ -1,15 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID, createHash } from 'crypto';
 import db, { getIOInstance } from '../models/database';
-import { notificationService } from '../services/notificationService';
-import { alertNoiseReductionService } from '../services/alertNoiseReductionService';
-import { remediationService } from '../services/remediationService';
-import { rootCauseAnalysisService } from '../services/rootCauseAnalysisService';
-import { alertService } from '../services/alertService';
-import { alertAutoAnalyzer } from '../services/alertAutoAnalyzer';
+import { notificationService } from '@services/notification';
+import { alertNoiseReductionService } from '@services/alert';
+import { remediationService } from '@services/ai';
+import { rootCauseAnalysisService } from '@services/ai';
+import { alertService } from '@services/alert';
+import { alertAutoAnalyzer } from '@services/alert';
 import { emitToAlerts } from '../websocket/handler';
 import { logger } from '../utils/logger';
 import { requireRole } from '../middleware/auth';
+import type { RemediationPolicy } from '../types';
 
 const router = Router();
 
@@ -379,7 +380,7 @@ router.post('/:id/process', async (req: Request, res: Response) => {
       alertService.processDatabaseAlert(id);
 
       const policies = await remediationService.matchAlertToPolicies(ctx);
-      matchedPolicies = policies.map(p => ({
+      matchedPolicies = policies.map((p: RemediationPolicy) => ({
         id: p.id,
         name: p.name,
         execution_mode: p.execution_mode

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { requireRole } from '../middleware/auth';
-import { alertAutoAnalyzer } from '../services/alertAutoAnalyzer';
+import { alertAutoAnalyzer } from '@services/alert';
 
 const router = Router();
 

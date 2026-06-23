@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { qanythingService } from '../services/qanythingService';
+import { qanythingService } from '@services/knowledge';
 import { authenticateToken } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import db from '../models/database';

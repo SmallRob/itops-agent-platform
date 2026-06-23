@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { portainerService } from '../services/portainerService';
+import { portainerService } from '@services/foundation';
 import { logger } from '../utils/logger';
 
 const router = Router();

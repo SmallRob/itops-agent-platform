@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import db from '../models/database';
-import { reportService } from '../services/reportService';
+import { reportService } from '@services/report';
 
 const router = Router();
 

@@ -4,13 +4,13 @@ import bcrypt from 'bcryptjs';
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import { env } from '../utils/env';
-import { tokenBlacklist } from '../services/tokenBlacklist';
+import { tokenBlacklist } from '@services/security';
 import { logger } from '../utils/logger';
 import { validateBody } from '../middleware/validation';
 import { authSchemas } from '../schemas/apiValidation';
 import { authenticateToken, invalidateUserCache } from '../middleware/auth';
 import { validatePassword } from '../utils/passwordPolicy';
-import { checkLoginLockout, recordFailedLogin, resetFailedLoginAttempts } from '../services/loginThrottler';
+import { checkLoginLockout, recordFailedLogin, resetFailedLoginAttempts } from '@services/security';
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import db from '../models/database';
-import { executeWorkflow } from '../services/workflowExecutor';
+import { executeWorkflow } from '@services/workflow';
 import { WorkflowParsed } from '../types';
 
 const router = Router();

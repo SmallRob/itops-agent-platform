@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import db from '../models/database';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
-import { createAuditLog } from '../services/auditService';
+import { createAuditLog } from '@services/audit';
 import { requireRole, authenticateToken, invalidateUserCache } from '../middleware/auth';
 import { validatePassword } from '../utils/passwordPolicy';
 

@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import { db } from '../models/database';
 import { logger } from '../utils/logger';
 import { requireRole } from '../middleware/auth';
-import { notificationService } from '../services/notificationService';
-import { sendWeCom, sendDingTalk } from '../services/notificationChannels';
+import { notificationService } from '@services/notification';
+import { sendWeCom, sendDingTalk } from '@services/notification';
 import nodemailer from 'nodemailer';
 
 const router = Router();

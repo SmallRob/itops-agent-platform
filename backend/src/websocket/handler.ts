@@ -1,10 +1,10 @@
-import { tokenBlacklist } from '../services/tokenBlacklist';
+import { tokenBlacklist } from '@services/security';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from '../utils/env';
 import { logger } from '../utils/logger';
 import db from '../models/database';
-import { terminalService } from '../services/terminalService';
+import { terminalService } from '@services/server';
 import type { User } from '../types';
 
 interface SocketWithUser extends Socket {

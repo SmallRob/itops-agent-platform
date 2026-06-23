@@ -2,10 +2,10 @@ import { Router, Request, Response } from 'express';
 import db, { getIOInstance } from '../models/database';
 import { logger } from '../utils/logger';
 import { randomUUID } from 'crypto';
-import { createAuditLog } from '../services/auditService';
+import { createAuditLog } from '@services/audit';
 import { createNotification } from './notificationRoutes';
-import { alertService } from '../services/alertService';
-import { remediationService } from '../services/remediationService';
+import { alertService } from '@services/alert';
+import { remediationService } from '@services/ai';
 import { env } from '../utils/env';
 import crypto from 'crypto';
 import {
@@ -16,9 +16,9 @@ import {
   adaptTencentCloud,
   detectSourceType,
   NormalizedAlert,
-} from '../services/alertSourceAdapters';
-import { alertDeviceResolver } from '../services/alertDeviceResolver';
-import { alertAutoAnalyzer } from '../services/alertAutoAnalyzer';
+} from '@services/alert';
+import { alertDeviceResolver } from '@services/alert';
+import { alertAutoAnalyzer } from '@services/alert';
 import { emitToAlerts } from '../websocket/handler';
 import { validateBody } from '../middleware/validation';
 import { z } from 'zod';

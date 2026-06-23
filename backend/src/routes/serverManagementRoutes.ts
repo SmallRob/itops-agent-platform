@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { serverInfoCollector } from '../services/serverInfoCollector';
-import { serverImportService } from '../services/serverImportService';
+import { serverInfoCollector } from '@services/server';
+import { serverImportService } from '@services/server';
 
 const router = Router();
 

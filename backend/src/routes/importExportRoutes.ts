@@ -5,7 +5,7 @@ import {
   exportAlerts,
   exportAuditLogs,
   exportReports
-} from '../services/importExportService';
+} from '@services/backup';
 import { requireRole } from '../middleware/auth';
 import { logger } from '../utils/logger';
 

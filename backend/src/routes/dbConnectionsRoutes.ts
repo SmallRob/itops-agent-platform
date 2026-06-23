@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import db from '../models/database';
-import { encrypt, decrypt } from '../services/encryptionService';
+import { encrypt, decrypt } from '@services/security';
 import { requireRole } from '../middleware/auth';
-import { executeDbskiter } from '../services/dbskiterService';
+import { executeDbskiter } from '@services/database';
 
 const router = Router();
 

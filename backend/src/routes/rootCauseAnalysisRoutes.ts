@@ -1,5 +1,5 @@
 import express from 'express';
-import { rootCauseAnalysisService } from '../services/rootCauseAnalysisService';
+import { rootCauseAnalysisService } from '@services/ai';
 
 const router = express.Router();
 

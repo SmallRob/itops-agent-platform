@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { executeCommand, testConnection, runComplianceCheck, complianceChecks } from '../services/sshService';
+import { executeCommand, testConnection, runComplianceCheck, complianceChecks } from '@services/server';
 import { randomUUID } from 'crypto';
 import db from '../models/database';
 import { logger } from '../utils/logger';

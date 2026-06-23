@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { portRackerService } from '../services/portRackerService';
+import { portRackerService } from '@services/foundation';
 import { logger } from '../utils/logger';
 
 const router = Router();

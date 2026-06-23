@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import db from '../models/database';
 import { randomUUID } from 'crypto';
-import { encrypt } from '../services/encryptionService';
+import { encrypt } from '@services/security';
 import { safeError } from '../utils/sensitiveMask';
 import { validateBody, validateParams } from '../middleware/validation';
 import { serverSchemas } from '../schemas/apiValidation';

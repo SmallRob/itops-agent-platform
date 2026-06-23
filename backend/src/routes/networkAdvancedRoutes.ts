@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { configBackupService } from '../services/configBackupService';
-import { lldpDiscoveryService } from '../services/lldpDiscoveryService';
+import { configBackupService } from '@services/backup';
+import { lldpDiscoveryService } from '@services/network';
 import { logger } from '../utils/logger';
 
 const router = Router();

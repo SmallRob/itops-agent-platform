@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { alertNoiseReductionService } from '../services/alertNoiseReductionService';
+import { alertNoiseReductionService } from '@services/alert';
 
 const router = Router();
 

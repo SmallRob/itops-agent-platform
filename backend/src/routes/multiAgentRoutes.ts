@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import { MultiAgentOrchestrator } from '../services/multiAgentCollaboration';
-import EnhancedRAGService from '../services/enhancedRAGService';
+import { MultiAgentOrchestrator } from '@services/agent';
+import { EnhancedRAGService } from '@services/ai';
 import db, { getIOInstance } from '../models/database';
 import { emitToTask } from '../websocket/handler';
 import { logger } from '../utils/logger';
