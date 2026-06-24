@@ -77,6 +77,10 @@ RUN python3 -m pip install dbskiter --break-system-packages || true
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
+# Copy tsconfig.json and modify paths for production (dist instead of src)
+COPY backend/tsconfig.json ./tsconfig.json
+RUN sed -i 's|"src/|"dist/|g' tsconfig.json
+
 # Copy node_modules from builder (already compiled with native modules)
 COPY --from=builder /app/node_modules ./node_modules
 
