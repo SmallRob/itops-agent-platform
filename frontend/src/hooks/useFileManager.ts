@@ -30,10 +30,10 @@ function getParentPath(path: string): string {
   return path.split('/').slice(0, -1).join('/') || '/';
 }
 
-export function useFileManager(serverId: string | null, token: string) {
+export function useFileManager(sessionId: string | null, token: string) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [state, setState] = useState<FileManagerState>({
-    currentServerId: serverId,
+    currentServerId: sessionId,
     fileTree: {},
     expandedPaths: [],
     selectedPath: null,
@@ -72,11 +72,11 @@ export function useFileManager(serverId: string | null, token: string) {
   }, [token]);
 
   const loadFiles = useCallback(async (path: string) => {
-    if (!socket || !serverId) return;
+    if (!socket || !sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    socket.emit('file:list', { serverId, path }, (result: { items?: FileItem[]; error?: string }) => {
+    socket.emit('file:list', { sessionId, path }, (result: { items?: FileItem[]; error?: string }) => {
       if (result.error) {
         setState(prev => ({ ...prev, loading: false, error: result.error ?? null }));
         return;
@@ -88,14 +88,14 @@ export function useFileManager(serverId: string | null, token: string) {
         loading: false,
       }));
     });
-  }, [socket, serverId]);
+  }, [socket, sessionId]);
 
   const openFile = useCallback(async (path: string) => {
-    if (!socket || !serverId) return;
+    if (!socket || !sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    socket.emit('file:read', { serverId, path }, (result: { content?: string; error?: string }) => {
+    socket.emit('file:read', { sessionId, path }, (result: { content?: string; error?: string }) => {
       if (result.error) {
         setState(prev => ({ ...prev, loading: false, error: result.error ?? null }));
         return;
@@ -135,14 +135,14 @@ export function useFileManager(serverId: string | null, token: string) {
         };
       });
     });
-  }, [socket, serverId]);
+  }, [socket, sessionId]);
 
   const saveFile = useCallback(async (path: string, content: string) => {
-    if (!socket || !serverId) return;
+    if (!socket || !sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    socket.emit('file:write', { serverId, path, content }, (result: { success?: boolean; error?: string }) => {
+    socket.emit('file:write', { sessionId, path, content }, (result: { success?: boolean; error?: string }) => {
       if (result.error) {
         setState(prev => ({ ...prev, loading: false, error: result.error ?? null }));
         return;
@@ -156,14 +156,14 @@ export function useFileManager(serverId: string | null, token: string) {
         ),
       }));
     });
-  }, [socket, serverId]);
+  }, [socket, sessionId]);
 
   const deleteFile = useCallback(async (path: string) => {
-    if (!socket || !serverId) return;
+    if (!socket || !sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    socket.emit('file:delete', { serverId, path }, (result: { success?: boolean; error?: string }) => {
+    socket.emit('file:delete', { sessionId, path }, (result: { success?: boolean; error?: string }) => {
       if (result.error) {
         setState(prev => ({ ...prev, loading: false, error: result.error ?? null }));
         return;
@@ -182,14 +182,14 @@ export function useFileManager(serverId: string | null, token: string) {
       const parentPath = getParentPath(path);
       loadFiles(parentPath);
     });
-  }, [socket, serverId, loadFiles]);
+  }, [socket, sessionId, loadFiles]);
 
   const renameFile = useCallback(async (oldPath: string, newPath: string) => {
-    if (!socket || !serverId) return;
+    if (!socket || !sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    socket.emit('file:rename', { serverId, oldPath, newPath }, (result: { success?: boolean; error?: string }) => {
+    socket.emit('file:rename', { sessionId, oldPath, newPath }, (result: { success?: boolean; error?: string }) => {
       if (result.error) {
         setState(prev => ({ ...prev, loading: false, error: result.error ?? null }));
         return;
@@ -206,14 +206,14 @@ export function useFileManager(serverId: string | null, token: string) {
       const parentPath = getParentPath(oldPath);
       loadFiles(parentPath);
     });
-  }, [socket, serverId, loadFiles]);
+  }, [socket, sessionId, loadFiles]);
 
   const createDirectory = useCallback(async (path: string) => {
-    if (!socket || !serverId) return;
+    if (!socket || !sessionId) return;
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    socket.emit('file:mkdir', { serverId, path }, (result: { success?: boolean; error?: string }) => {
+    socket.emit('file:mkdir', { sessionId, path }, (result: { success?: boolean; error?: string }) => {
       if (result.error) {
         setState(prev => ({ ...prev, loading: false, error: result.error ?? null }));
         return;
@@ -224,7 +224,7 @@ export function useFileManager(serverId: string | null, token: string) {
       const parentPath = getParentPath(path);
       loadFiles(parentPath);
     });
-  }, [socket, serverId, loadFiles]);
+  }, [socket, sessionId, loadFiles]);
 
   const setActiveFile = useCallback((fileId: string | null) => {
     setState(prev => ({ ...prev, activeFileId: fileId }));

@@ -10,9 +10,10 @@ interface TerminalProps {
   serverName: string;
   token: string;
   onClose: () => void;
+  onSessionReady?: (sessionId: string) => void;
 }
 
-export default function WebTerminal({ serverId, serverName, token, onClose }: TerminalProps) {
+export default function WebTerminal({ serverId, serverName, token, onClose, onSessionReady }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -100,6 +101,9 @@ export default function WebTerminal({ serverId, serverName, token, onClose }: Te
         }
         sessionIdRef.current = result.sessionId || null;
         setStatus('connected');
+        if (result.sessionId && onSessionReady) {
+          onSessionReady(result.sessionId);
+        }
       });
     });
 

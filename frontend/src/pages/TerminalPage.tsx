@@ -187,6 +187,8 @@ function TerminalWorkspace({
   onToggleSidebar: () => void;
   onClose: () => void;
 }) {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
   const {
     state: fmState,
     loadFiles,
@@ -200,7 +202,7 @@ function TerminalWorkspace({
     updateFileContent,
     toggleExpanded,
     setSelectedPath,
-  } = useFileManager(server.id, token);
+  } = useFileManager(sessionId, token);
 
   const { handleDelete, handleRename, handleCreateDirectory } = useFileOperations(
     fmState,
@@ -272,6 +274,7 @@ function TerminalWorkspace({
             serverName={`${server.name} (${server.hostname})`}
             token={token}
             onClose={onClose}
+            onSessionReady={setSessionId}
           />
         </div>
       </div>
