@@ -1,7 +1,7 @@
 import path from 'path';
 import { SFTPWrapper } from 'ssh2';
 import { terminalService } from './terminalService';
-import type { FileItem, FileInfo, FileManagerConfig } from '@types/fileManager';
+import type { FileItem, FileInfo, FileManagerConfig } from '../../types/fileManager';
 
 const DEFAULT_CONFIG: FileManagerConfig = {
   maxFileSize: 10 * 1024 * 1024,
@@ -234,7 +234,7 @@ export class FileManagerService {
       type: stat.isDirectory() ? 'directory' : 'file',
       size: stat.size,
       modified: new Date(stat.mtime * 1000).toISOString(),
-      created: (stat.birthtime && stat.birthtime.getTime() > 0 ? stat.birthtime : new Date(stat.atime * 1000)).toISOString(),
+      created: new Date(stat.atime * 1000).toISOString(),
       permissions: stat.mode.toString(8).slice(-3),
       owner: stat.uid.toString(),
       group: stat.gid.toString(),

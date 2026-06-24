@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import db from '../models/database';
 import { terminalService, fileManagerService } from '@services/server';
 import type { User } from '../types';
-import type { FileItem, FileInfo } from '@types/fileManager';
+import type { FileItem, FileInfo } from '../types/fileManager';
 
 interface SocketWithUser extends Socket {
   user?: User;
