@@ -29,6 +29,7 @@ const PortRackerPage = lazy(() => import('./pages/PortRackerPage'));
 
 // ==================== 独立页面 ====================
 const Knowledge = lazy(() => import('./pages/Knowledge'));
+const FileManagerPage = lazy(() => import('./pages/FileManagerPage'));
 
 // ==================== 子路由/编辑器页面 ====================
 const WorkflowEditor = lazy(() => import('./pages/WorkflowEditor'));
@@ -129,6 +130,7 @@ function App() {
 
                     {/* 独立页面路由 */}
                     <Route path="knowledge" element={<SuspenseRoute><ProtectedRoute><Knowledge /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="files" element={<SuspenseRoute><ProtectedRoute><FileManagerPage /></ProtectedRoute></SuspenseRoute>} />
 
                     {/* 子路由/编辑器页面（无侧边栏菜单入口） */}
                     <Route path="workflows/:id" element={<SuspenseRoute><ProtectedRoute><WorkflowEditor /></ProtectedRoute></SuspenseRoute>} />
