@@ -133,63 +133,63 @@ export function setupWebSocket(io: SocketIOServer) {
       terminalService.closeTerminalSession(data.sessionId);
     });
 
-    socket.on('file:list', async (data: { serverId: string; path: string }, callback: (result: { items?: FileItem[]; error?: string }) => void) => {
+    socket.on('file:list', async (data: { sessionId: string; path: string }, callback: (result: { items?: FileItem[]; error?: string }) => void) => {
       try {
-        const items = await fileManagerService.listFiles(data.serverId, data.path);
+        const items = await fileManagerService.listFiles(data.sessionId, data.path);
         callback({ items });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on('file:read', async (data: { serverId: string; path: string }, callback: (result: { content?: string; encoding?: string; error?: string }) => void) => {
+    socket.on('file:read', async (data: { sessionId: string; path: string }, callback: (result: { content?: string; encoding?: string; error?: string }) => void) => {
       try {
-        const result = await fileManagerService.readFile(data.serverId, data.path);
+        const result = await fileManagerService.readFile(data.sessionId, data.path);
         callback({ content: result.content, encoding: result.encoding });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on('file:write', async (data: { serverId: string; path: string; content: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+    socket.on('file:write', async (data: { sessionId: string; path: string; content: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
       try {
-        await fileManagerService.writeFile(data.serverId, data.path, data.content);
+        await fileManagerService.writeFile(data.sessionId, data.path, data.content);
         callback({ success: true });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on('file:delete', async (data: { serverId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+    socket.on('file:delete', async (data: { sessionId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
       try {
-        await fileManagerService.delete(data.serverId, data.path);
+        await fileManagerService.delete(data.sessionId, data.path);
         callback({ success: true });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on('file:rename', async (data: { serverId: string; oldPath: string; newPath: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+    socket.on('file:rename', async (data: { sessionId: string; oldPath: string; newPath: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
       try {
-        await fileManagerService.rename(data.serverId, data.oldPath, data.newPath);
+        await fileManagerService.rename(data.sessionId, data.oldPath, data.newPath);
         callback({ success: true });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on('file:mkdir', async (data: { serverId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+    socket.on('file:mkdir', async (data: { sessionId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
       try {
-        await fileManagerService.createDirectory(data.serverId, data.path);
+        await fileManagerService.createDirectory(data.sessionId, data.path);
         callback({ success: true });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on('file:info', async (data: { serverId: string; path: string }, callback: (result: { info?: FileInfo; error?: string }) => void) => {
+    socket.on('file:info', async (data: { sessionId: string; path: string }, callback: (result: { info?: FileInfo; error?: string }) => void) => {
       try {
-        const info = await fileManagerService.getFileInfo(data.serverId, data.path);
+        const info = await fileManagerService.getFileInfo(data.sessionId, data.path);
         callback({ info });
       } catch (error: unknown) {
         callback({ error: error instanceof Error ? error.message : 'Unknown error' });
