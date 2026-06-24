@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { FileItem, FileOperations } from '../../types/fileManager';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { FileItem, FileOperations, SearchResult } from '../../types/fileManager';
 import FileTreeItem from './FileTreeItem';
 import FileContextMenu from './FileContextMenu';
+import FileBreadcrumb from './FileBreadcrumb';
+import FileSearch from './FileSearch';
 
 interface FileBrowserProps {
   serverId: string;
@@ -42,9 +44,14 @@ export default function FileBrowser({
     item: FileItem;
   } | null>(null);
   const [rootPath] = useState('/');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [currentPath, setCurrentPath] = useState('/');
 
   useEffect(() => {
     onLoadFiles(rootPath);
+    setCurrentPath(rootPath);
   }, [serverId, rootPath, onLoadFiles]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, item: FileItem) => {
@@ -55,6 +62,92 @@ export default function FileBrowser({
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      setIsSearching(true);
+      setSearchQuery(query);
+      const lowerQuery = query.toLowerCase();
+      const results: SearchResult[] = [];
+
+      files.forEach((items, dirPath) => {
+        items.forEach((item) => {
+          const nameMatch = item.name.toLowerCase().includes(lowerQuery);
+          const pathMatch = item.path.toLowerCase().includes(lowerQuery);
+          if (nameMatch || pathMatch) {
+            results.push({
+              path: item.path,
+              name: item.name,
+              type: item.type,
+              matches: nameMatch
+                ? [
+                    {
+                      line: 0,
+                      content: item.name,
+                      startIndex: item.name.toLowerCase().indexOf(lowerQuery),
+                      endIndex: item.name.toLowerCase().indexOf(lowerQuery) + query.length,
+                    },
+                  ]
+                : [],
+            });
+          }
+        });
+      });
+
+      setSearchResults(results);
+      setIsSearching(false);
+    },
+    [files],
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+  }, []);
+
+  const handleSelectSearchResult = useCallback(
+    (path: string) => {
+      onSelect(path);
+      setSearchQuery('');
+      setSearchResults([]);
+      const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+      setCurrentPath(parentPath);
+      onLoadFiles(parentPath);
+    },
+    [onSelect, onLoadFiles],
+  );
+
+  const handleBreadcrumbNavigate = useCallback(
+    (path: string) => {
+      setCurrentPath(path);
+      onLoadFiles(path);
+    },
+    [onLoadFiles],
+  );
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) {
+      return files.get(currentPath) || [];
+    }
+    const lowerQuery = searchQuery.toLowerCase();
+    return searchResults
+      .filter((r) => {
+        const parentPath = r.path.substring(0, r.path.lastIndexOf('/')) || '/';
+        return parentPath === currentPath;
+      })
+      .map(
+        (r): FileItem => ({
+          name: r.name,
+          path: r.path,
+          type: r.type,
+          size: 0,
+          modified: '',
+          permissions: '',
+          owner: '',
+          group: '',
+        }),
+      );
+  }, [files, currentPath, searchQuery, searchResults]);
 
   const handleContextAction = useCallback(
     (action: string, item: FileItem) => {
@@ -99,7 +192,7 @@ export default function FileBrowser({
   );
 
   const renderFileTree = (path: string, level: number = 0) => {
-    const items = files.get(path) || [];
+    const items = level === 0 ? filteredItems : files.get(path) || [];
 
     return items.map((item) => (
       <React.Fragment key={item.path}>
@@ -121,7 +214,18 @@ export default function FileBrowser({
   return (
     <div className="h-full flex flex-col bg-gray-900 text-gray-200">
       <div className="p-2 border-b border-gray-700">
-        <h3 className="text-sm font-semibold">File Browser</h3>
+        <h3 className="text-sm font-semibold mb-2">File Browser</h3>
+        <FileSearch
+          results={searchResults}
+          isSearching={isSearching}
+          onSearch={handleSearch}
+          onClear={handleClearSearch}
+          onSelectResult={handleSelectSearchResult}
+        />
+      </div>
+
+      <div className="border-b border-gray-700">
+        <FileBreadcrumb path={currentPath} onNavigate={handleBreadcrumbNavigate} />
       </div>
 
       <div className="flex-1 overflow-auto">
