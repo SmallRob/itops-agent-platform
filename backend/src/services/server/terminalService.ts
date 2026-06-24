@@ -191,6 +191,11 @@ export class TerminalService {
     return session?.shell;
   }
 
+  getConnection(sessionId: string): Client | undefined {
+    const session = activeSessions.get(sessionId);
+    return session?.conn;
+  }
+
   closeTerminalSession(sessionId: string): boolean {
     const session = activeSessions.get(sessionId);
     if (!session) {
