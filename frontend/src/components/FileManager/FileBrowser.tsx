@@ -7,8 +7,8 @@ import FileSearch from './FileSearch';
 
 interface FileBrowserProps {
   serverId: string;
-  files: Map<string, FileItem[]>;
-  expandedPaths: Set<string>;
+  files: Record<string, FileItem[]>;
+  expandedPaths: string[];
   selectedPath: string | null;
   operations: FileOperations;
   loading: boolean;
@@ -70,7 +70,7 @@ export default function FileBrowser({
       const lowerQuery = query.toLowerCase();
       const results: SearchResult[] = [];
 
-      files.forEach((items, dirPath) => {
+      Object.entries(files).forEach(([dirPath, items]) => {
         items.forEach((item) => {
           const nameMatch = item.name.toLowerCase().includes(lowerQuery);
           const pathMatch = item.path.toLowerCase().includes(lowerQuery);
@@ -127,7 +127,7 @@ export default function FileBrowser({
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) {
-      return files.get(currentPath) || [];
+      return files[currentPath] || [];
     }
     const lowerQuery = searchQuery.toLowerCase();
     return searchResults
@@ -192,21 +192,21 @@ export default function FileBrowser({
   );
 
   const renderFileTree = (path: string, level: number = 0) => {
-    const items = level === 0 ? filteredItems : files.get(path) || [];
+    const items = level === 0 ? filteredItems : files[path] || [];
 
     return items.map((item) => (
       <React.Fragment key={item.path}>
         <FileTreeItem
           item={item}
           level={level}
-          isExpanded={expandedPaths.has(item.path)}
+          isExpanded={expandedPaths.includes(item.path)}
           isSelected={selectedPath === item.path}
           onToggleExpand={onToggleExpand}
           onSelect={onSelect}
           onOpen={onOpen}
           onContextMenu={handleContextMenu}
         />
-        {item.type === 'directory' && expandedPaths.has(item.path) && renderFileTree(item.path, level + 1)}
+        {item.type === 'directory' && expandedPaths.includes(item.path) && renderFileTree(item.path, level + 1)}
       </React.Fragment>
     ));
   };
@@ -231,7 +231,7 @@ export default function FileBrowser({
       <div className="flex-1 overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div role="status" aria-label="Loading" className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
         ) : (
           renderFileTree(rootPath)
