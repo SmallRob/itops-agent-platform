@@ -4,8 +4,9 @@ import jwt from 'jsonwebtoken';
 import { env } from '../utils/env';
 import { logger } from '../utils/logger';
 import db from '../models/database';
-import { terminalService } from '@services/server';
+import { terminalService, fileManagerService } from '@services/server';
 import type { User } from '../types';
+import type { FileItem, FileInfo } from '@types/fileManager';
 
 interface SocketWithUser extends Socket {
   user?: User;
@@ -130,6 +131,60 @@ export function setupWebSocket(io: SocketIOServer) {
       socket.leave(`terminal:${data.sessionId}`);
       socket.emit(`terminal:close-session:${data.sessionId}`);
       terminalService.closeTerminalSession(data.sessionId);
+    });
+
+    socket.on('file:list', async (data: { serverId: string; path: string }, callback: (result: { items?: FileItem[]; error?: string }) => void) => {
+      try {
+        const items = await fileManagerService.listFiles(data.serverId, data.path);
+        callback({ items });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
+    socket.on('file:read', async (data: { serverId: string; path: string }, callback: (result: { content?: string; error?: string }) => void) => {
+      try {
+        const content = await fileManagerService.readFile(data.serverId, data.path);
+        callback({ content });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
+    socket.on('file:write', async (data: { serverId: string; path: string; content: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      try {
+        await fileManagerService.writeFile(data.serverId, data.path, data.content);
+        callback({ success: true });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
+    socket.on('file:delete', async (data: { serverId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      try {
+        await fileManagerService.delete(data.serverId, data.path);
+        callback({ success: true });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
+    socket.on('file:rename', async (data: { serverId: string; oldPath: string; newPath: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      try {
+        await fileManagerService.rename(data.serverId, data.oldPath, data.newPath);
+        callback({ success: true });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
+    socket.on('file:mkdir', async (data: { serverId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      try {
+        await fileManagerService.createDirectory(data.serverId, data.path);
+        callback({ success: true });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
     });
 
     socket.on('disconnect', () => {
