@@ -1,4 +1,4 @@
-export {
+import type {
   FileItem,
   FileInfo,
   FileOperations,
@@ -9,6 +9,18 @@ export {
   Operation,
   OperationLog,
 } from '../../../shared/types/fileManager';
+
+export type {
+  FileItem,
+  FileInfo,
+  FileOperations,
+  FileManagerConfig,
+  ClipboardItem,
+  SearchMatch,
+  SearchResult,
+  Operation,
+  OperationLog,
+};
 
 export interface OpenFile {
   id: string;
