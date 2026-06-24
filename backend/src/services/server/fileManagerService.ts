@@ -26,6 +26,7 @@ const DEFAULT_CONFIG: FileManagerConfig = {
 
 export class FileManagerService {
   private config: FileManagerConfig;
+  private sftpCache = new Map<string, SFTPWrapper>();
 
   constructor(config: FileManagerConfig = DEFAULT_CONFIG) {
     this.config = config;
@@ -67,6 +68,17 @@ export class FileManagerService {
     }
 
     const sftp = await this.getSftpClient(sessionId);
+
+    const stat = await new Promise<import('ssh2').Stats>((resolve, reject) => {
+      sftp.stat(path, (err, stats) => {
+        if (err) reject(err);
+        else resolve(stats);
+      });
+    });
+
+    if (stat.size > this.config.maxFileSize) {
+      throw new Error(`File size (${stat.size} bytes) exceeds maximum allowed size (${this.config.maxFileSize} bytes)`);
+    }
 
     return await new Promise<string>((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -125,6 +137,17 @@ export class FileManagerService {
     });
 
     if (stat.isDirectory()) {
+      const entries = await new Promise<import('ssh2').Attributes[]>((resolve, reject) => {
+        sftp.readdir(path, (err, list) => {
+          if (err) reject(err);
+          else resolve(list.map(item => item.attrs));
+        });
+      });
+
+      if (entries.length > 0) {
+        throw new Error('Directory is not empty. Please remove all files and subdirectories before deleting.');
+      }
+
       await new Promise<void>((resolve, reject) => {
         sftp.rmdir(path, (err) => {
           if (err) reject(err);
@@ -194,7 +217,7 @@ export class FileManagerService {
       type: stat.isDirectory() ? 'directory' : 'file',
       size: stat.size,
       modified: new Date(stat.mtime * 1000).toISOString(),
-      created: new Date(stat.atime * 1000).toISOString(),
+      created: (stat.birthtime && stat.birthtime.getTime() > 0 ? stat.birthtime : new Date(stat.atime * 1000)).toISOString(),
       permissions: stat.mode.toString(8).slice(-3),
       owner: stat.uid.toString(),
       group: stat.gid.toString(),
@@ -204,7 +227,7 @@ export class FileManagerService {
   }
 
   private validatePath(path: string): boolean {
-    const normalizedPath = path.replace(/\\/g, '/');
+    const normalizedPath = path.replace(/\\/g, '/').replace(/\/\.\.\//g, '/');
     for (const blockedPath of this.config.blockedPaths) {
       if (normalizedPath.startsWith(blockedPath)) {
         return false;
@@ -233,13 +256,16 @@ export class FileManagerService {
   }
 
   private async getSftpClient(sessionId: string): Promise<SFTPWrapper> {
+    const cached = this.sftpCache.get(sessionId);
+    if (cached) return cached;
+
     const conn = terminalService.getConnection(sessionId);
 
     if (!conn) {
       throw new Error('No active SSH connection for this session');
     }
 
-    return new Promise((resolve, reject) => {
+    const sftp = await new Promise<SFTPWrapper>((resolve, reject) => {
       conn.sftp((err, sftp) => {
         if (err) {
           reject(err);
@@ -248,6 +274,10 @@ export class FileManagerService {
         resolve(sftp);
       });
     });
+
+    this.sftpCache.set(sessionId, sftp);
+    sftp.on('close', () => this.sftpCache.delete(sessionId));
+    return sftp;
   }
 }
 

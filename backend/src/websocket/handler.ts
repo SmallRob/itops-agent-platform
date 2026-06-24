@@ -187,6 +187,15 @@ export function setupWebSocket(io: SocketIOServer) {
       }
     });
 
+    socket.on('file:info', async (data: { sessionId: string; path: string }, callback: (result: { info?: FileInfo; error?: string }) => void) => {
+      try {
+        const info = await fileManagerService.getFileInfo(data.sessionId, data.path);
+        callback({ info });
+      } catch (error: unknown) {
+        callback({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
     socket.on('disconnect', () => {
       logger.info(`❌ Client disconnected: ${socket.id}`);
       taskRooms.forEach((sockets, taskId) => {
