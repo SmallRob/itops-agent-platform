@@ -245,9 +245,65 @@ describe('FileManagerService', () => {
   describe('DEFAULT_CONFIG', () => {
     it('should set unimplemented operations to false', () => {
       const defaultService = new FileManagerService();
-      // Access config via listFiles which uses the default config
-      // We test indirectly by verifying the service is constructed with defaults
-      expect(defaultService).toBeDefined();
+      const defaultConfig = (defaultService as any).config;
+      expect(defaultConfig.operations.upload).toBe(false);
+      expect(defaultConfig.operations.download).toBe(false);
+      expect(defaultConfig.operations.copy).toBe(false);
+      expect(defaultConfig.operations.paste).toBe(false);
+      expect(defaultConfig.operations.cut).toBe(false);
+      expect(defaultConfig.operations.compress).toBe(false);
+      expect(defaultConfig.operations.extract).toBe(false);
+      expect(defaultConfig.operations.permissions).toBe(false);
+      expect(defaultConfig.operations.ownership).toBe(false);
+      expect(defaultConfig.operations.create).toBe(true);
+      expect(defaultConfig.operations.read).toBe(true);
+      expect(defaultConfig.operations.update).toBe(true);
+      expect(defaultConfig.operations.delete).toBe(true);
+      expect(defaultConfig.operations.rename).toBe(true);
+      expect(defaultConfig.maxFileSize).toBe(10 * 1024 * 1024);
+    });
+  });
+
+  describe('readFile maxFileSize enforcement', () => {
+    it('should reject files exceeding maxFileSize', async () => {
+      mockSftp.stat.mockImplementation((_p: any, cb: any) =>
+        cb(null, { size: 20 * 1024 * 1024 })
+      );
+      await expect(service.readFile('s1', '/tmp/huge.txt')).rejects.toThrow('exceeds maximum allowed size');
+    });
+  });
+
+  describe('writeFile content size validation', () => {
+    it('should reject content exceeding maxFileSize', async () => {
+      const largeContent = 'x'.repeat(10 * 1024 * 1024 + 1);
+      await expect(service.writeFile('s1', '/tmp/big.txt', largeContent)).rejects.toThrow('exceeds maximum allowed size');
+    });
+  });
+
+  describe('delete on non-empty directory', () => {
+    it('should reject deleting a non-empty directory', async () => {
+      mockSftp.stat.mockImplementation((_p: any, cb: any) =>
+        cb(null, { isDirectory: () => true })
+      );
+      mockSftp.readdir.mockImplementation((_p: any, cb: any) =>
+        cb(null, [{ filename: 'file.txt', attrs: {} }])
+      );
+      await expect(service.delete('s1', '/tmp/notempty')).rejects.toThrow('Directory is not empty');
+    });
+  });
+
+  describe('rename/writeFile with blocked destination paths', () => {
+    it('should reject rename to a blocked path', async () => {
+      await expect(service.rename('s1', '/tmp/safe.txt', '/etc/shadow')).rejects.toThrow('Access denied');
+    });
+
+    it('should reject writeFile to a blocked path', async () => {
+      await expect(service.writeFile('s1', '/etc/shadow', 'data')).rejects.toThrow('Access denied');
+    });
+
+    it('should not block paths that share a prefix but are not under the blocked path', async () => {
+      mockSftp.rename.mockImplementation((_o: any, _n: any, cb: any) => cb(null));
+      await expect(service.rename('s1', '/tmp/a', '/etc/passwd-backup')).resolves.not.toThrow();
     });
   });
 });

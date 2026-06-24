@@ -246,7 +246,7 @@ export class FileManagerService {
   private validatePath(inputPath: string): boolean {
     const normalizedPath = path.resolve('/', inputPath.replace(/\\/g, '/'));
     for (const blockedPath of this.config.blockedPaths) {
-      if (normalizedPath.startsWith(blockedPath)) {
+      if (normalizedPath === blockedPath || normalizedPath.startsWith(blockedPath + '/')) {
         return false;
       }
     }

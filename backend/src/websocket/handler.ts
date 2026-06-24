@@ -133,7 +133,17 @@ export function setupWebSocket(io: SocketIOServer) {
       terminalService.closeTerminalSession(data.sessionId);
     });
 
+    const authorizeSession = (sessionId: string, callback: (result: { error?: string }) => void): boolean => {
+      const sock = socket as SocketWithUser;
+      if (!sock.terminalSessionIds?.has(sessionId)) {
+        callback({ error: 'Unauthorized session access' });
+        return false;
+      }
+      return true;
+    };
+
     socket.on('file:list', async (data: { sessionId: string; path: string }, callback: (result: { items?: FileItem[]; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         const items = await fileManagerService.listFiles(data.sessionId, data.path);
         callback({ items });
@@ -143,6 +153,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:read', async (data: { sessionId: string; path: string }, callback: (result: { content?: string; encoding?: string; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         const result = await fileManagerService.readFile(data.sessionId, data.path);
         callback({ content: result.content, encoding: result.encoding });
@@ -152,6 +163,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:write', async (data: { sessionId: string; path: string; content: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.writeFile(data.sessionId, data.path, data.content);
         callback({ success: true });
@@ -161,6 +173,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:delete', async (data: { sessionId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.delete(data.sessionId, data.path);
         callback({ success: true });
@@ -170,6 +183,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:rename', async (data: { sessionId: string; oldPath: string; newPath: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.rename(data.sessionId, data.oldPath, data.newPath);
         callback({ success: true });
@@ -179,6 +193,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:mkdir', async (data: { sessionId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.createDirectory(data.sessionId, data.path);
         callback({ success: true });
@@ -188,6 +203,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:info', async (data: { sessionId: string; path: string }, callback: (result: { info?: FileInfo; error?: string }) => void) => {
+      if (!authorizeSession(data.sessionId, callback)) return;
       try {
         const info = await fileManagerService.getFileInfo(data.sessionId, data.path);
         callback({ info });
