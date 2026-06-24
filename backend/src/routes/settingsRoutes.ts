@@ -458,4 +458,67 @@ router.delete('/api-keys/:provider', (req: Request, res: Response) => {
   }
 });
 
+// 获取文件管理配置
+router.get('/file-manager', (_req: Request, res: Response) => {
+  try {
+    const config = db.prepare('SELECT value FROM settings WHERE key = ?').get('FILE_MANAGER_CONFIG');
+    const defaultConfig = {
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      allowedExtensions: [],
+      blockedPaths: ['/etc/shadow', '/etc/passwd', '/root/.ssh'],
+      operations: {
+        create: true,
+        read: true,
+        update: true,
+        delete: true,
+        rename: true,
+        upload: false,
+        download: true,
+        copy: true,
+        paste: true,
+        cut: true,
+        compress: false,
+        extract: false,
+        permissions: false,
+        ownership: false,
+      },
+    };
+
+    if (config) {
+      try {
+        res.json({ success: true, data: JSON.parse((config as { value: string }).value) });
+      } catch {
+        res.json({ success: true, data: defaultConfig });
+      }
+    } else {
+      res.json({ success: true, data: defaultConfig });
+    }
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to fetch file manager config' });
+  }
+});
+
+// 保存文件管理配置
+router.put('/file-manager', (req: Request, res: Response) => {
+  try {
+    const config = req.body;
+
+    if (!config || typeof config !== 'object') {
+      return res.status(400).json({ success: false, error: 'Invalid config data' });
+    }
+
+    const upsertStmt = db.prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, datetime('now','localtime'))
+      ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now','localtime')
+    `);
+
+    upsertStmt.run('FILE_MANAGER_CONFIG', JSON.stringify(config), JSON.stringify(config));
+
+    res.json({ success: true, message: 'File manager config saved' });
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to save file manager config' });
+  }
+});
+
 export default router;

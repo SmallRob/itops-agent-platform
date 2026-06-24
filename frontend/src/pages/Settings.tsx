@@ -2,7 +2,7 @@ import { formatTime, formatDate, formatDuration } from '../lib/date';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, Sun, Moon, Lock, BookOpen, Upload, FileText, Globe, Wifi, Brain, Eye, EyeOff, Plug, Radio, Container } from 'lucide-react';
+import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, Sun, Moon, Lock, BookOpen, Upload, FileText, Globe, Wifi, Brain, Eye, EyeOff, Plug, Radio, Container, FolderCog } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../hooks/useTheme';
 import api from '../lib/api';
@@ -585,14 +585,19 @@ export default function Settings() {
     },
   });
 
-  const tabs = [
-    { id: 'models', name: 'AI模型管理', icon: Brain },
-    { id: 'qanything', name: '知识库', icon: BookOpen },
-    { id: 'notifications', name: '通知设置', icon: Bell },
-    { id: 'integrations', name: '服务集成', icon: Plug },
-    { id: 'database', name: '数据库', icon: Database },
-    { id: 'security', name: '安全设置', icon: Shield },
+  const isAdmin = user?.role === 'admin';
+
+  const allTabs = [
+    { id: 'models', name: 'AI模型管理', icon: Brain, adminOnly: false },
+    { id: 'qanything', name: '知识库', icon: BookOpen, adminOnly: false },
+    { id: 'notifications', name: '通知设置', icon: Bell, adminOnly: false },
+    { id: 'integrations', name: '服务集成', icon: Plug, adminOnly: true },
+    { id: 'fileManager', name: '文件管理', icon: FolderCog, adminOnly: true },
+    { id: 'database', name: '数据库', icon: Database, adminOnly: true },
+    { id: 'security', name: '安全设置', icon: Shield, adminOnly: false },
   ];
+
+  const tabs = allTabs.filter(tab => !tab.adminOnly || isAdmin);
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -629,6 +634,10 @@ export default function Settings() {
 
             <div className="flex-1 p-6">
               {activeTab === 'models' && <AIModels />}
+
+              {activeTab === 'fileManager' && (
+                <FileManagerConfig />
+              )}
 
               {activeTab === 'qanything' && (
                 <div className="space-y-6">
@@ -1884,6 +1893,209 @@ export default function Settings() {
         </div>
 
       </div>
+    </div>
+  );
+}
+
+function FileManagerConfig() {
+  const queryClient = useQueryClient();
+  const [config, setConfig] = useState({
+    maxFileSize: 10 * 1024 * 1024,
+    allowedExtensions: [] as string[],
+    blockedPaths: ['/etc/shadow', '/etc/passwd', '/root/.ssh'],
+    operations: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      rename: true,
+      upload: false,
+      download: true,
+      copy: true,
+      paste: true,
+      cut: true,
+      compress: false,
+      extract: false,
+      permissions: false,
+      ownership: false,
+    },
+  });
+
+  const { data: configData, isLoading } = useQuery({
+    queryKey: ['fileManagerConfig'],
+    queryFn: async () => {
+      const res = await api.get('/api/settings/file-manager');
+      return res.data.data;
+    },
+  });
+
+  useEffect(() => {
+    if (configData) {
+      setConfig(configData);
+    }
+  }, [configData]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      await api.put('/api/settings/file-manager', config);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fileManagerConfig'] });
+    },
+  });
+
+  const handleOperationToggle = (key: keyof typeof config.operations) => {
+    setConfig(prev => ({
+      ...prev,
+      operations: {
+        ...prev.operations,
+        [key]: !prev.operations[key],
+      },
+    }));
+  };
+
+  const operationLabels: Record<keyof typeof config.operations, string> = {
+    create: '创建文件/文件夹',
+    read: '读取文件',
+    update: '编辑/保存文件',
+    delete: '删除文件/文件夹',
+    rename: '重命名',
+    upload: '上传文件',
+    download: '下载文件',
+    copy: '复制',
+    paste: '粘贴',
+    cut: '剪切',
+    compress: '压缩',
+    extract: '解压',
+    permissions: '修改权限',
+    ownership: '修改所有者',
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+          <FolderCog className="w-5 h-5" />
+          文件管理配置
+        </h3>
+        <p className="text-sm text-text-secondary mb-6">
+          配置Web终端文件浏览器的操作权限和限制
+        </p>
+      </div>
+
+      {/* 最大文件大小 */}
+      <div className="bg-background rounded-lg p-6">
+        <h4 className="font-medium text-text-primary mb-4">文件大小限制</h4>
+        <div className="flex items-center gap-4">
+          <input
+            type="number"
+            value={config.maxFileSize / 1024 / 1024}
+            onChange={(e) => setConfig(prev => ({ ...prev, maxFileSize: Number(e.target.value) * 1024 * 1024 }))}
+            className="w-32 px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+          />
+          <span className="text-text-secondary">MB</span>
+        </div>
+      </div>
+
+      {/* 黑名单路径 */}
+      <div className="bg-background rounded-lg p-6">
+        <h4 className="font-medium text-text-primary mb-4">禁止访问路径</h4>
+        <div className="space-y-2">
+          {config.blockedPaths.map((path, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={path}
+                onChange={(e) => {
+                  const newPaths = [...config.blockedPaths];
+                  newPaths[index] = e.target.value;
+                  setConfig(prev => ({ ...prev, blockedPaths: newPaths }));
+                }}
+                className="flex-1 px-4 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
+              />
+              <button
+                onClick={() => {
+                  setConfig(prev => ({
+                    ...prev,
+                    blockedPaths: prev.blockedPaths.filter((_, i) => i !== index),
+                  }));
+                }}
+                className="px-3 py-2 text-red-500 hover:bg-red-500/10 rounded-lg"
+              >
+                删除
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              setConfig(prev => ({
+                ...prev,
+                blockedPaths: [...prev.blockedPaths, ''],
+              }));
+            }}
+            className="px-4 py-2 text-primary hover:bg-primary/10 rounded-lg text-sm"
+          >
+            + 添加路径
+          </button>
+        </div>
+      </div>
+
+      {/* 操作权限 */}
+      <div className="bg-background rounded-lg p-6">
+        <h4 className="font-medium text-text-primary mb-4">操作权限</h4>
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(config.operations).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">
+                {operationLabels[key as keyof typeof config.operations]}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={value}
+                  onChange={() => handleOperationToggle(key as keyof typeof config.operations)}
+                />
+                <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 保存按钮 */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+        >
+          {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+          保存配置
+        </button>
+      </div>
+
+      {saveMutation.isSuccess && (
+        <div className="flex items-center gap-2 text-status-success text-sm">
+          <CheckCircle2 className="w-4 h-4" />
+          配置已保存
+        </div>
+      )}
+
+      {saveMutation.isError && (
+        <div className="flex items-center gap-2 text-status-error text-sm">
+          <AlertCircle className="w-4 h-4" />
+          保存失败，请重试
+        </div>
+      )}
     </div>
   );
 }
