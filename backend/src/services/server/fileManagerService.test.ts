@@ -139,6 +139,9 @@ describe('FileManagerService', () => {
       mockSftp.createReadStream.mockReturnValue(mockStream);
 
       const promise = service.readFile('s1', '/tmp/hello.txt');
+
+      // Wait for microtask to allow getSftpClient to resolve and listeners to be attached
+      await new Promise(r => setTimeout(r, 0));
       mockStream.emit('data', Buffer.from('hello'));
       mockStream.emit('end');
 
@@ -156,6 +159,8 @@ describe('FileManagerService', () => {
       mockSftp.createReadStream.mockReturnValue(mockStream);
 
       const promise = service.readFile('s1', '/tmp/image.png');
+
+      await new Promise(r => setTimeout(r, 0));
       const binaryData = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
       mockStream.emit('data', binaryData);
       mockStream.emit('end');
@@ -304,6 +309,117 @@ describe('FileManagerService', () => {
     it('should not block paths that share a prefix but are not under the blocked path', async () => {
       mockSftp.rename.mockImplementation((_o: any, _n: any, cb: any) => cb(null));
       await expect(service.rename('s1', '/tmp/a', '/etc/passwd-backup')).resolves.not.toThrow();
+    });
+  });
+
+  describe('createDirectory', () => {
+    it('should create a directory successfully', async () => {
+      mockSftp.mkdir.mockImplementation((_p: any, cb: any) => cb(null));
+      await expect(service.createDirectory('s1', '/tmp/newdir')).resolves.not.toThrow();
+      expect(mockSftp.mkdir).toHaveBeenCalledWith('/tmp/newdir', expect.any(Function));
+    });
+
+    it('should reject creating a directory in a blocked path', async () => {
+      await expect(service.createDirectory('s1', '/root/.ssh/newdir')).rejects.toThrow('Access denied');
+    });
+
+    it('should propagate sftp mkdir errors', async () => {
+      mockSftp.mkdir.mockImplementation((_p: any, cb: any) => cb(new Error('Permission denied')));
+      await expect(service.createDirectory('s1', '/tmp/baddir')).rejects.toThrow('Permission denied');
+    });
+  });
+
+  describe('delete on files and empty directories', () => {
+    it('should delete a file successfully', async () => {
+      mockSftp.stat.mockImplementation((_p: any, cb: any) =>
+        cb(null, { isDirectory: () => false })
+      );
+      mockSftp.unlink.mockImplementation((_p: any, cb: any) => cb(null));
+      await expect(service.delete('s1', '/tmp/file.txt')).resolves.not.toThrow();
+      expect(mockSftp.unlink).toHaveBeenCalledWith('/tmp/file.txt', expect.any(Function));
+    });
+
+    it('should delete an empty directory successfully', async () => {
+      mockSftp.stat.mockImplementation((_p: any, cb: any) =>
+        cb(null, { isDirectory: () => true })
+      );
+      mockSftp.readdir.mockImplementation((_p: any, cb: any) => cb(null, []));
+      mockSftp.rmdir.mockImplementation((_p: any, cb: any) => cb(null));
+      await expect(service.delete('s1', '/tmp/emptydir')).resolves.not.toThrow();
+      expect(mockSftp.rmdir).toHaveBeenCalledWith('/tmp/emptydir', expect.any(Function));
+    });
+
+    it('should reject deleting a blocked path', async () => {
+      await expect(service.delete('s1', '/etc/shadow')).rejects.toThrow('Access denied');
+    });
+  });
+
+  describe('rename success cases', () => {
+    it('should rename a file successfully', async () => {
+      mockSftp.rename.mockImplementation((_o: any, _n: any, cb: any) => cb(null));
+      await expect(service.rename('s1', '/tmp/old.txt', '/tmp/new.txt')).resolves.not.toThrow();
+      expect(mockSftp.rename).toHaveBeenCalledWith('/tmp/old.txt', '/tmp/new.txt', expect.any(Function));
+    });
+
+    it('should reject renaming from a blocked source path', async () => {
+      await expect(service.rename('s1', '/etc/shadow', '/tmp/safe.txt')).rejects.toThrow('Access denied');
+    });
+  });
+
+  describe('writeFile success cases', () => {
+    it('should write a text file successfully', async () => {
+      const EventEmitter = (await import('events')).EventEmitter;
+      const mockStream = new EventEmitter();
+      mockStream.write = vi.fn(() => true);
+      mockStream.end = vi.fn(() => mockStream.emit('close'));
+      mockSftp.createWriteStream.mockReturnValue(mockStream);
+
+      await expect(service.writeFile('s1', '/tmp/hello.txt', 'hello world')).resolves.not.toThrow();
+      expect(mockStream.write).toHaveBeenCalledWith('hello world');
+      expect(mockStream.end).toHaveBeenCalled();
+    });
+  });
+
+  describe('getFileInfo for directories', () => {
+    it('should return directory info', async () => {
+      mockSftp.stat.mockImplementation((_p: any, cb: any) =>
+        cb(null, {
+          isDirectory: () => true,
+          size: 4096,
+          mtime: 1000,
+          birthtime: new Date(0),
+          atime: 1000,
+          mode: 0o755,
+          uid: 1000,
+          gid: 1000,
+        })
+      );
+      const info = await service.getFileInfo('s1', '/tmp/mydir');
+      expect(info.type).toBe('directory');
+      expect(info.name).toBe('mydir');
+      expect(info.permissions).toBe('755');
+    });
+  });
+
+  describe('readFile error handling', () => {
+    it('should reject reading a blocked path', async () => {
+      await expect(service.readFile('s1', '/etc/passwd')).rejects.toThrow('Access denied');
+    });
+
+    it('should propagate sftp readStream errors', async () => {
+      mockSftp.stat.mockImplementation((_p: any, cb: any) =>
+        cb(null, { size: 10 })
+      );
+      const EventEmitter = (await import('events')).EventEmitter;
+      const mockStream = new EventEmitter();
+      mockSftp.createReadStream.mockReturnValue(mockStream);
+
+      const promise = service.readFile('s1', '/tmp/error.txt');
+
+      // Need to emit error asynchronously to avoid unhandled error
+      setTimeout(() => mockStream.emit('error', new Error('File not found')), 10);
+
+      await expect(promise).rejects.toThrow('File not found');
     });
   });
 });
