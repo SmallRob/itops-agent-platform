@@ -1,10 +1,10 @@
-import { tokenBlacklist } from '@services/security';
+import { tokenBlacklist } from '../services/security';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from '../utils/env';
 import { logger } from '../utils/logger';
 import db from '../models/database';
-import { terminalService, fileManagerService } from '@services/server';
+import { terminalService, fileManagerService } from '../services/server';
 import type { User } from '../types';
 import type { FileItem, FileInfo } from '../types/fileManager';
 
