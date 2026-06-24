@@ -1,3 +1,4 @@
+import path from 'path';
 import { SFTPWrapper } from 'ssh2';
 import { terminalService } from './terminalService';
 import type { FileItem, FileInfo, FileManagerConfig } from '@types/fileManager';
@@ -62,7 +63,7 @@ export class FileManagerService {
     });
   }
 
-  async readFile(sessionId: string, path: string): Promise<string> {
+  async readFile(sessionId: string, path: string): Promise<{ content: string; encoding: 'utf-8' | 'base64' }> {
     if (!this.validatePath(path)) {
       throw new Error('Access denied to this path');
     }
@@ -80,7 +81,9 @@ export class FileManagerService {
       throw new Error(`File size (${stat.size} bytes) exceeds maximum allowed size (${this.config.maxFileSize} bytes)`);
     }
 
-    return await new Promise<string>((resolve, reject) => {
+    const isBinary = this.isBinaryPath(path);
+
+    return await new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
 
       const readStream = sftp.createReadStream(path);
@@ -90,7 +93,12 @@ export class FileManagerService {
       });
 
       readStream.on('end', () => {
-        resolve(Buffer.concat(chunks).toString('utf-8'));
+        const buf = Buffer.concat(chunks);
+        if (isBinary) {
+          resolve({ content: buf.toString('base64'), encoding: 'base64' });
+        } else {
+          resolve({ content: buf.toString('utf-8'), encoding: 'utf-8' });
+        }
       });
 
       readStream.on('error', (err: Error) => {
@@ -102,6 +110,15 @@ export class FileManagerService {
   async writeFile(sessionId: string, path: string, content: string): Promise<void> {
     if (!this.validatePath(path)) {
       throw new Error('Access denied to this path');
+    }
+
+    if (this.isBinaryPath(path)) {
+      throw new Error('Writing binary files is not supported');
+    }
+
+    const contentSize = Buffer.byteLength(content, 'utf-8');
+    if (contentSize > this.config.maxFileSize) {
+      throw new Error(`Content size (${contentSize} bytes) exceeds maximum allowed size (${this.config.maxFileSize} bytes)`);
     }
 
     const sftp = await this.getSftpClient(sessionId);
@@ -226,8 +243,8 @@ export class FileManagerService {
     };
   }
 
-  private validatePath(path: string): boolean {
-    const normalizedPath = path.replace(/\\/g, '/').replace(/\/\.\.\//g, '/');
+  private validatePath(inputPath: string): boolean {
+    const normalizedPath = path.resolve('/', inputPath.replace(/\\/g, '/'));
     for (const blockedPath of this.config.blockedPaths) {
       if (normalizedPath.startsWith(blockedPath)) {
         return false;
@@ -255,9 +272,35 @@ export class FileManagerService {
     return mimeTypes[ext || ''] || 'application/octet-stream';
   }
 
+  private static readonly BINARY_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'svg',
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'zip', 'tar', 'gz', 'bz2', '7z', 'rar',
+    'mp3', 'mp4', 'avi', 'mkv', 'mov', 'wav', 'flac',
+    'exe', 'dll', 'so', 'dylib', 'bin', 'o', 'a',
+    'sqlite', 'db',
+  ]);
+
+  private isBinaryPath(filePath: string): boolean {
+    const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    return FileManagerService.BINARY_EXTENSIONS.has(ext);
+  }
+
   private async getSftpClient(sessionId: string): Promise<SFTPWrapper> {
     const cached = this.sftpCache.get(sessionId);
-    if (cached) return cached;
+    if (cached) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          cached.stat('/', (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        return cached;
+      } catch {
+        this.sftpCache.delete(sessionId);
+      }
+    }
 
     const conn = terminalService.getConnection(sessionId);
 
@@ -278,6 +321,14 @@ export class FileManagerService {
     this.sftpCache.set(sessionId, sftp);
     sftp.on('close', () => this.sftpCache.delete(sessionId));
     return sftp;
+  }
+
+  cleanup(sessionId: string): void {
+    const sftp = this.sftpCache.get(sessionId);
+    if (sftp) {
+      try { sftp.end(); } catch { /* ignore */ }
+      this.sftpCache.delete(sessionId);
+    }
   }
 }
 

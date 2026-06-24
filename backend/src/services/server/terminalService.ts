@@ -3,6 +3,7 @@ import db from '@models/database';
 import { decrypt } from '@services/security/encryptionService';
 import { logger } from '@utils/logger';
 import { checkCommandSafety } from '@middleware/commandFilter';
+import { fileManagerService } from './fileManagerService';
 
 export interface TerminalSession {
   id: string;
@@ -27,6 +28,7 @@ const cleanupTimer = setInterval(() => {
     
     const toRemove = entries.slice(0, activeSessions.size - SESSION_MAX_COUNT);
     for (const [id, session] of toRemove) {
+      fileManagerService.cleanup(id);
       try { session.shell.end(); } catch { /* ignore */ }
       try { session.conn.end(); } catch { /* ignore */ }
       activeSessions.delete(id);
@@ -36,6 +38,7 @@ const cleanupTimer = setInterval(() => {
   
   for (const [id, session] of activeSessions.entries()) {
     if (now - session.createdAt.getTime() > SESSION_TTL_MS) {
+      fileManagerService.cleanup(id);
       try { session.shell.end(); } catch { /* ignore */ }
       try { session.conn.end(); } catch { /* ignore */ }
       activeSessions.delete(id);
@@ -112,6 +115,7 @@ export class TerminalService {
             const sessionId = `${serverId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
             stream.on('close', () => {
+              fileManagerService.cleanup(sessionId);
               activeSessions.delete(sessionId);
               try {
                 conn.end();
@@ -123,6 +127,7 @@ export class TerminalService {
 
             stream.on('error', (streamErr: Error) => {
               logger.error(`Terminal stream error for session ${sessionId}:`, streamErr);
+              fileManagerService.cleanup(sessionId);
               activeSessions.delete(sessionId);
               try {
                 conn.end();
@@ -201,6 +206,8 @@ export class TerminalService {
     if (!session) {
       return false;
     }
+
+    fileManagerService.cleanup(sessionId);
 
     try {
       session.shell.end();
