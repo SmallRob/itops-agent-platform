@@ -102,3 +102,61 @@ def test_agent_without_tools_uses_all(registry):
     agent = registry.get_agent("custom")
     assert agent is not None
     assert agent._enabled_tools is None
+
+
+def test_unregister_returns_true_for_existing(registry):
+    config = AgentConfig(name="a", system_prompt="A")
+    registry.register("to-remove", config)
+    assert registry.unregister("to-remove") is True
+
+
+def test_unregister_returns_false_for_missing(registry):
+    assert registry.unregister("nonexistent") is False
+
+
+def test_reregister_overwrites(registry):
+    config1 = AgentConfig(name="v1", system_prompt="Version 1", model="openai:gpt-4o")
+    config2 = AgentConfig(name="v2", system_prompt="Version 2", model="openai:gpt-4o")
+    registry.register("dup", config1)
+    registry.register("dup", config2)
+    assert len(registry.list_agents()) == 1
+    assert registry.get_agent("dup").name == "v2"
+    assert registry.get_config("dup").system_prompt == "Version 2"
+
+
+def test_get_agent_unregistered_returns_none(registry):
+    assert registry.get_agent("nope") is None
+
+
+def test_get_config_unregistered_returns_none(registry):
+    assert registry.get_config("nope") is None
+
+
+def test_predefined_type_preserves_config(registry):
+    config = AgentConfig(
+        name="custom-alert",
+        system_prompt="Custom alert prompt",
+        model="openai:gpt-4o",
+        tools=["get_alerts"],
+        metadata={"priority": "high"},
+    )
+    registry.register("alert", config)
+    agent = registry.get_agent("alert")
+    assert agent is not None
+    assert agent.name == "custom-alert"
+    assert agent.system_prompt == "Custom alert prompt"
+    assert agent._enabled_tools == ["get_alerts"]
+    assert agent.metadata == {"priority": "high"}
+
+
+def test_empty_tools_list_means_no_tools(registry):
+    config = AgentConfig(
+        name="no-tools-agent",
+        system_prompt="Agent with no tools",
+        model="openai:gpt-4o",
+        tools=[],
+    )
+    registry.register("empty", config)
+    agent = registry.get_agent("empty")
+    assert agent is not None
+    assert agent._enabled_tools == []

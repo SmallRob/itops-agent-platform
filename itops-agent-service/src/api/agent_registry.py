@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import threading
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from ..agents import ITOpsAgent, create_agent
+from ..agents import ITOpsAgent
 
 
 class AgentConfig(BaseModel):
@@ -12,7 +13,7 @@ class AgentConfig(BaseModel):
     name: str = Field(description="Agent display name")
     system_prompt: str = Field(description="System prompt")
     model: Optional[str] = Field(default=None, description="LLM model")
-    tools: list[str] = Field(default_factory=list, description="Enabled tools")
+    tools: Optional[list[str]] = Field(default=None, description="Enabled tools, None means all tools")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
@@ -29,10 +30,11 @@ class AgentRegistry:
         agent = self._create_agent_from_config(agent_type, config)
         self._agents[agent_type] = agent
 
-    def unregister(self, agent_type: str) -> None:
-        """Unregister an agent type"""
-        self._agents.pop(agent_type, None)
+    def unregister(self, agent_type: str) -> bool:
+        """Unregister an agent type. Returns True if found and removed."""
+        agent_removed = self._agents.pop(agent_type, None) is not None
         self._configs.pop(agent_type, None)
+        return agent_removed
 
     def get_agent(self, agent_type: str) -> Optional[ITOpsAgent]:
         """Get agent instance by type"""
@@ -48,26 +50,24 @@ class AgentRegistry:
 
     def _create_agent_from_config(self, agent_type: str, config: AgentConfig) -> ITOpsAgent:
         """Create agent instance from config"""
-        predefined_types = ["general", "alert", "diagnosis", "inspection"]
-
-        if agent_type in predefined_types:
-            return create_agent(agent_type, model=config.model)
-
         return ITOpsAgent(
             name=config.name,
             system_prompt=config.system_prompt,
             model=config.model,
-            tools=config.tools or None,
-            metadata=config.metadata or None,
+            tools=config.tools,
+            metadata=config.metadata if config.metadata else None,
         )
 
 
 _agent_registry: Optional[AgentRegistry] = None
+_registry_lock = threading.Lock()
 
 
 def get_agent_registry() -> AgentRegistry:
     """Get global agent registry instance"""
     global _agent_registry
     if _agent_registry is None:
-        _agent_registry = AgentRegistry()
+        with _registry_lock:
+            if _agent_registry is None:
+                _agent_registry = AgentRegistry()
     return _agent_registry
