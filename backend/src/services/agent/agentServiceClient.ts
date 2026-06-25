@@ -39,6 +39,20 @@ export interface LLMConfig {
   max_tokens?: number;
 }
 
+export interface KnowledgeResult {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
+  relevance?: number;
+}
+
+function validateAgentType(agentType: string): void {
+  if (!/^[a-zA-Z0-9_-]+$/.test(agentType)) {
+    throw new Error(`Invalid agentType: "${agentType}". Only alphanumeric, underscore, and hyphen are allowed.`);
+  }
+}
+
 export class AgentServiceClient {
   private config: AgentServiceConfig;
   private axios: AxiosInstance;
@@ -64,8 +78,11 @@ export class AgentServiceClient {
   }
 
   async registerAgent(agentType: string, config: AgentConfig): Promise<void> {
+    validateAgentType(agentType);
     try {
-      await this.axios.post(`/api/agents/${agentType}/register`, config);
+      await this.withRetry(() =>
+        this.axios.post(`/api/agents/${agentType}/register`, config)
+      );
       logger.info(`Agent ${agentType} registered successfully`);
     } catch (error) {
       logger.error(`Failed to register agent ${agentType}:`, error);
@@ -74,8 +91,11 @@ export class AgentServiceClient {
   }
 
   async unregisterAgent(agentType: string): Promise<void> {
+    validateAgentType(agentType);
     try {
-      await this.axios.post(`/api/agents/${agentType}/unregister`);
+      await this.withRetry(() =>
+        this.axios.post(`/api/agents/${agentType}/unregister`)
+      );
       logger.info(`Agent ${agentType} unregistered successfully`);
     } catch (error) {
       logger.error(`Failed to unregister agent ${agentType}:`, error);
@@ -85,7 +105,9 @@ export class AgentServiceClient {
 
   async listRegisteredAgents(): Promise<{ agents: string[]; configs: Record<string, AgentConfig> }> {
     try {
-      const response = await this.axios.get('/api/agents/registered');
+      const response = await this.withRetry(() =>
+        this.axios.get('/api/agents/registered')
+      );
       return response.data;
     } catch (error) {
       logger.error('Failed to list registered agents:', error);
@@ -95,7 +117,9 @@ export class AgentServiceClient {
 
   async syncLLMConfig(config: LLMConfig): Promise<void> {
     try {
-      await this.axios.post('/api/llm/config', config);
+      await this.withRetry(() =>
+        this.axios.post('/api/llm/config', config)
+      );
       logger.info('LLM config synced successfully');
     } catch (error) {
       logger.error('Failed to sync LLM config:', error);
@@ -105,7 +129,9 @@ export class AgentServiceClient {
 
   async getLLMConfig(): Promise<LLMConfig> {
     try {
-      const response = await this.axios.get('/api/llm/config');
+      const response = await this.withRetry(() =>
+        this.axios.get('/api/llm/config')
+      );
       return response.data.config;
     } catch (error) {
       logger.error('Failed to get LLM config:', error);
@@ -113,12 +139,14 @@ export class AgentServiceClient {
     }
   }
 
-  async searchKnowledge(query: string, category?: string): Promise<unknown[]> {
+  async searchKnowledge(query: string, category?: string): Promise<KnowledgeResult[]> {
     try {
-      const response = await this.axios.post('/api/knowledge/search', {
-        query,
-        category,
-      });
+      const response = await this.withRetry(() =>
+        this.axios.post('/api/knowledge/search', {
+          query,
+          category,
+        })
+      );
       return response.data.results;
     } catch (error) {
       logger.error('Failed to search knowledge:', error);
@@ -128,7 +156,9 @@ export class AgentServiceClient {
 
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await this.axios.get('/api/health');
+      const response = await this.withRetry(() =>
+        this.axios.get('/api/health')
+      );
       return response.data.status === 'healthy';
     } catch {
       return false;
@@ -137,7 +167,7 @@ export class AgentServiceClient {
 
   private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
     let lastError: Error | null = null;
-    
+
     for (let i = 0; i < this.config.retries; i++) {
       try {
         return await fn();
@@ -148,22 +178,25 @@ export class AgentServiceClient {
         }
       }
     }
-    
+
     throw lastError;
   }
 }
 
-// Default client instance
 let defaultClient: AgentServiceClient | null = null;
 
 export function getAgentServiceClient(): AgentServiceClient {
   if (!defaultClient) {
     const config: AgentServiceConfig = {
       baseUrl: process.env.AGENT_SERVICE_URL || 'http://localhost:8000',
-      timeout: parseInt(process.env.AGENT_SERVICE_TIMEOUT || '30000'),
-      retries: parseInt(process.env.AGENT_SERVICE_RETRIES || '3'),
+      timeout: Number(process.env.AGENT_SERVICE_TIMEOUT) || 30000,
+      retries: Number(process.env.AGENT_SERVICE_RETRIES) || 3,
     };
     defaultClient = new AgentServiceClient(config);
   }
   return defaultClient;
+}
+
+export function resetAgentServiceClient(): void {
+  defaultClient = null;
 }
