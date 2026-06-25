@@ -27,6 +27,7 @@ class AgentRegistry:
     def register(self, agent_type: str, config: AgentConfig) -> None:
         """Register a new agent type"""
         agent = self._create_agent_from_config(agent_type, config)
+        # Atomic update: only save if agent creation succeeded
         self._configs[agent_type] = config
         self._agents[agent_type] = agent
 
