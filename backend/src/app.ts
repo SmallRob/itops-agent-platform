@@ -195,7 +195,7 @@ async function initializeApp() {
   initTokenBlacklist();
   startCircuitBreakerCleanup();
   startApprovalTimeoutChecker();
-  registerExistingAgents();
+  await registerExistingAgents();
   
   logger.info('✅ Application initialization complete');
 }

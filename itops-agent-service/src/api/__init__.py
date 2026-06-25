@@ -251,7 +251,10 @@ async def update_llm_config(config: LLMConfig):
 async def get_llm_config():
     """Get current LLM configuration"""
     manager = get_llm_config_manager()
-    return {"config": manager.get_config().model_dump()}
+    config_data = manager.get_config().model_dump()
+    if "api_key" in config_data:
+        config_data["api_key"] = "***REDACTED***"
+    return {"config": config_data}
 
 
 @app.get("/api/health")

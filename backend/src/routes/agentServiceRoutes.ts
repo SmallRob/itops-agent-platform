@@ -55,6 +55,10 @@ router.get('/agents/registered', async (req: Request, res: Response) => {
 router.post('/llm/config', async (req: Request, res: Response) => {
   try {
     const config = req.body;
+    if (!config || typeof config !== 'object') {
+      res.status(400).json({ error: 'Invalid request body: expected an object' });
+      return;
+    }
     const client = getAgentServiceClient();
     await client.syncLLMConfig(config);
     res.json({ success: true });

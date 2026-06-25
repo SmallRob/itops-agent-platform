@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AgentServiceClient, getAgentServiceClient, resetAgentServiceClient } from './agentServiceClient';
 import type { AxiosInstance } from 'axios';
 
