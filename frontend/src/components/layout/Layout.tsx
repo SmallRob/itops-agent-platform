@@ -227,10 +227,10 @@ export default function Layout() {
             <div>
               <h1 className={clsx('text-base font-bold tracking-tight',
                 theme === 'dark' ? 'text-white' : 'text-gray-900'
-              )}>ITOps Agent</h1>
+              )}>ITOps-Agent</h1>
               <p className={clsx('text-[11px]',
                 theme === 'dark' ? 'text-slate-400' : 'text-gray-500'
-              )}>多Agent自动化平台</p>
+              )}>自动化运维平台</p>
             </div>
           </div>
         </div>

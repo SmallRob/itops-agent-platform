@@ -69,11 +69,11 @@ router.post('/test/:channel', requireRole('admin'), async (req: Request, res: Re
           auth: { user, pass: password || '' },
         });
         await transporter.sendMail({
-          from: `"ITOps Agent" <${user}>`,
+          from: `"ITOps-Agent" <${user}>`,
           to: to || user,
-          subject: '🔔 ITOps Agent Platform - 通知渠道测试',
+          subject: '🔔 ITOps-Agent 自动化运维平台 - 通知渠道测试',
           text: '这是一封测试邮件，证明邮件通知配置正确。\n\n如果您收到此邮件，说明 SMTP 配置已生效。',
-          html: '<h2>✅ 通知配置测试</h2><p>这是一封测试邮件，证明邮件通知配置正确。</p><hr/><small>ITOps Agent Platform</small>',
+          html: '<h2>✅ 通知配置测试</h2><p>这是一封测试邮件，证明邮件通知配置正确。</p><hr/><small>ITOps-Agent 自动化运维平台</small>',
         });
         return res.json({ success: true, message: '测试邮件发送成功' });
       }

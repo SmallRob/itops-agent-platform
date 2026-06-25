@@ -193,7 +193,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-primary mb-2">仪表盘</h1>
-            <p className="text-text-secondary">IT运维多Agent自动化平台概览</p>
+            <p className="text-text-secondary">ITOps-Agent 自动化运维平台概览</p>
           </div>
           <a
             href="https://www.zjzwfw.cloud/"

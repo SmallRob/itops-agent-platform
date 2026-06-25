@@ -349,7 +349,7 @@ async function startServer() {
   await initializeApp();
   
   httpServer.listen(PORT, HOST, () => {
-    logger.info(`🚀 ITOps Agent Platform Backend running on ${HOST}:${PORT}`);
+    logger.info(`🚀 ITOps-Agent 自动化运维平台 Backend running on ${HOST}:${PORT}`);
     logger.info(`📡 WebSocket server ready`);
     logger.info(`🌍 Environment: ${env.NODE_ENV}`);
   });

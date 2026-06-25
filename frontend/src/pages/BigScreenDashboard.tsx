@@ -1289,7 +1289,7 @@ export default function BigScreenDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span>ITOps Agent Platform v3.0.1</span>
+            <span>ITOps-Agent 自动化运维平台 v3.0.1</span>
             <span>© 2026</span>
           </div>
         </footer>

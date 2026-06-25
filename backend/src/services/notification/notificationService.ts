@@ -207,7 +207,7 @@ class NotificationService {
     const message = {
       msgtype: 'markdown',
       markdown: {
-        content: `## ${notification.title}\n\n${notification.content}\n\n> 来源: ITOps Agent Platform\n> 时间: ${new Date().toLocaleString()}`
+        content: `## ${notification.title}\n\n${notification.content}\n\n> 来源: ITOps-Agent 自动化运维平台\n> 时间: ${new Date().toLocaleString()}`
       }
     };
 
@@ -226,7 +226,7 @@ class NotificationService {
       msgtype: 'markdown',
       markdown: {
         title: notification.title,
-        text: `## ${notification.title}\n\n${notification.content}\n\n> 来源: ITOps Agent Platform\n> 时间: ${new Date().toLocaleString()}`
+        text: `## ${notification.title}\n\n${notification.content}\n\n> 来源: ITOps-Agent 自动化运维平台\n> 时间: ${new Date().toLocaleString()}`
       }
     };
 
@@ -273,11 +273,11 @@ class NotificationService {
     }
 
     const info = await this.transporter.sendMail({
-      from: `"ITOps Agent Platform" <${smtpUser}>`,
+      from: `"ITOps-Agent 自动化运维平台" <${smtpUser}>`,
       to: smtpUser,
       subject: notification.title,
       text: notification.content,
-      html: `<h2>${notification.title}</h2><pre>${notification.content}</pre><hr/><small>ITOps Agent Platform - ${new Date().toLocaleString()}</small>`
+      html: `<h2>${notification.title}</h2><pre>${notification.content}</pre><hr/><small>ITOps-Agent 自动化运维平台 - ${new Date().toLocaleString()}</small>`
     });
 
     logger.info('Email sent successfully', { messageId: info.messageId });

@@ -58,10 +58,10 @@ export default function Login() {
               <img src="/logo.jpg" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-              ITOps Agent 平台
+              ITOps-Agent 自动化运维平台
             </h1>
             <p className="text-slate-300 text-sm tracking-wide">
-              多Agent自动化平台
+              智能运维 · 自动化管理 · 高效协同
             </p>
           </div>
 
@@ -159,7 +159,7 @@ export default function Login() {
             </a>
             <span className="text-slate-500 text-sm">•</span>
             <p className="text-slate-400 text-sm">
-              © 2026 ITOps Agent 平台
+              © 2026 ITOps-Agent 自动化运维平台
             </p>
           </div>
         </div>
