@@ -26,8 +26,8 @@ class AgentRegistry:
 
     def register(self, agent_type: str, config: AgentConfig) -> None:
         """Register a new agent type"""
-        self._configs[agent_type] = config
         agent = self._create_agent_from_config(agent_type, config)
+        self._configs[agent_type] = config
         self._agents[agent_type] = agent
 
     def unregister(self, agent_type: str) -> bool:

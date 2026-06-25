@@ -42,11 +42,7 @@ class TestAgentRegistration:
             "system_prompt": "You are a test agent",
             "model": "openai:gpt-4o"
         }
-        response = client.post(
-            "/api/agents/register",
-            json=config,
-            params={"agent_type": "test"}
-        )
+        response = client.post("/api/agents/test/register", json=config)
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
@@ -58,13 +54,34 @@ class TestAgentRegistration:
             "system_prompt": "You are a test agent",
             "model": "openai:gpt-4o"
         }
-        client.post("/api/agents/register", json=config, params={"agent_type": "test"})
+        client.post("/api/agents/test/register", json=config)
 
-        response = client.post("/api/agents/unregister", params={"agent_type": "test"})
+        response = client.post("/api/agents/test/unregister")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["agent_type"] == "test"
+
+    def test_unregister_nonexistent_agent(self, client):
+        response = client.post("/api/agents/nonexistent/unregister")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"]
+
+    def test_register_agent_empty_type(self, client):
+        config = {
+            "name": "test-agent",
+            "system_prompt": "You are a test agent",
+            "model": "openai:gpt-4o"
+        }
+        response = client.post("/api/agents/ /register", json=config)
+        assert response.status_code == 422
+
+    def test_register_agent_malformed_config(self, client):
+        response = client.post(
+            "/api/agents/test/register",
+            json={"invalid_field": "value"},
+        )
+        assert response.status_code == 422
 
     def test_list_registered_agents_empty(self, client):
         response = client.get("/api/agents/registered")
@@ -79,14 +96,14 @@ class TestAgentRegistration:
             "system_prompt": "Agent 1",
             "model": "openai:gpt-4o"
         }
-        client.post("/api/agents/register", json=config, params={"agent_type": "test1"})
+        client.post("/api/agents/test1/register", json=config)
 
         config2 = {
             "name": "agent2",
             "system_prompt": "Agent 2",
             "model": "openai:gpt-4o"
         }
-        client.post("/api/agents/register", json=config2, params={"agent_type": "test2"})
+        client.post("/api/agents/test2/register", json=config2)
 
         response = client.get("/api/agents/registered")
         assert response.status_code == 200
@@ -104,11 +121,7 @@ class TestAgentRegistration:
             "model": "openai:gpt-4o",
             "tools": ["search_knowledge", "execute_command"]
         }
-        response = client.post(
-            "/api/agents/register",
-            json=config,
-            params={"agent_type": "custom"}
-        )
+        response = client.post("/api/agents/custom/register", json=config)
         assert response.status_code == 200
         assert response.json()["success"] is True
 

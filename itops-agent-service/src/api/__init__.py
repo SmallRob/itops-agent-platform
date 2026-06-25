@@ -77,12 +77,6 @@ def get_agent(agent_type: str = "general") -> ITOpsAgent:
 
 
 # API端点
-@app.get("/health")
-async def health_check():
-    """健康检查"""
-    return {"status": "healthy", "version": "0.1.0"}
-
-
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """聊天接口
@@ -200,26 +194,28 @@ async def list_agents():
     }
 
 
-@app.post("/api/agents/register")
-async def register_agent(config: AgentConfig, agent_type: str):
+@app.post("/api/agents/{agent_type}/register")
+async def register_agent(agent_type: str, config: AgentConfig):
     """Register a new agent type"""
+    if not agent_type or not agent_type.strip():
+        raise HTTPException(status_code=422, detail="agent_type must be a non-empty string")
     try:
         registry = get_agent_registry()
-        registry.register(agent_type, config)
-        return {"success": True, "agent_type": agent_type}
+        registry.register(agent_type.strip(), config)
+        return {"success": True, "agent_type": agent_type.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/agents/unregister")
+@app.post("/api/agents/{agent_type}/unregister")
 async def unregister_agent(agent_type: str):
     """Unregister an agent type"""
-    try:
-        registry = get_agent_registry()
-        registry.unregister(agent_type)
-        return {"success": True, "agent_type": agent_type}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if not agent_type or not agent_type.strip():
+        raise HTTPException(status_code=422, detail="agent_type must be a non-empty string")
+    registry = get_agent_registry()
+    if not registry.unregister(agent_type.strip()):
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_type.strip()}' not found")
+    return {"success": True, "agent_type": agent_type.strip()}
 
 
 @app.get("/api/agents/registered")
@@ -227,7 +223,11 @@ async def list_registered_agents():
     """List all registered agents"""
     registry = get_agent_registry()
     agents = registry.list_agents()
-    configs = {agent_type: registry.get_config(agent_type) for agent_type in agents}
+    configs = {
+        agent_type: config.model_dump()
+        for agent_type in agents
+        if (config := registry.get_config(agent_type)) is not None
+    }
     return {"agents": agents, "configs": configs}
 
 
