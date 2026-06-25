@@ -212,10 +212,15 @@ async def unregister_agent(agent_type: str):
     """Unregister an agent type"""
     if not agent_type or not agent_type.strip():
         raise HTTPException(status_code=422, detail="agent_type must be a non-empty string")
-    registry = get_agent_registry()
-    if not registry.unregister(agent_type.strip()):
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_type.strip()}' not found")
-    return {"success": True, "agent_type": agent_type.strip()}
+    try:
+        registry = get_agent_registry()
+        if not registry.unregister(agent_type.strip()):
+            raise HTTPException(status_code=404, detail=f"Agent '{agent_type.strip()}' not found")
+        return {"success": True, "agent_type": agent_type.strip()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/agents/registered")
