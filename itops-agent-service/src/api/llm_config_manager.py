@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from ..config import settings, LLMProvider
+from ..config import LLMProvider, settings
 
 
 class LLMConfig(BaseModel):
@@ -24,12 +24,15 @@ class LLMConfigManager:
         self._config: LLMConfig = self._load_from_settings()
     
     def _load_from_settings(self) -> LLMConfig:
-        """Load config from settings"""
+        """Load config from settings based on current provider"""
+        provider = settings.llm_provider
+        llm_config = settings.get_llm_config()
+
         return LLMConfig(
-            provider=settings.llm_provider.value,
-            model=settings.llm_model,
-            api_key=settings.openai_api_key,
-            api_base=settings.openai_api_base,
+            provider=provider.value,
+            model=llm_config.get("model", settings.llm_model),
+            api_key=llm_config.get("api_key"),
+            api_base=llm_config.get("api_base"),
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
         )
