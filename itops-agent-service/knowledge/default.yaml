@@ -14,6 +14,15 @@ categories:
   - id: cloud
     name: 云计算
     description: 云计算和容器化相关知识
+  - id: aiops
+    name: AIOps
+    description: 智能运维相关知识
+  - id: sre
+    name: SRE
+    description: 站点可靠性工程相关知识
+  - id: observability
+    name: 可观测性
+    description: 监控、日志、链路追踪相关知识
 
 articles:
   - id: cpu_high
@@ -867,3 +876,644 @@ articles:
       2. 按量付费
       3. 资源标签
       4. 成本管家
+
+  # ==================== AIOps 相关知识 ====================
+  
+  - id: aiops_overview
+    title: AIOps智能运维概述
+    category: aiops
+    tags: [aiops, 智能运维, ai, ml, 机器学习]
+    summary: AIOps（人工智能运维）的核心概念、架构和实施方法
+    content: |
+      # AIOps智能运维概述
+
+      ## 什么是AIOps
+      AIOps（Artificial Intelligence for IT Operations）是将人工智能和机器学习技术应用于IT运维，实现自动化、智能化的运维管理。
+
+      ## 核心能力
+      1. **数据聚合**：收集和整合来自各种监控工具、日志、事件的数据
+      2. **噪声过滤**：使用ML算法从海量告警中识别真正的问题信号
+      3. **异常检测**：基于历史数据建立基线，检测异常行为
+      4. **根因分析**：自动关联事件，定位问题根本原因
+      5. **预测分析**：预测潜在问题，实现主动运维
+      6. **自动修复**：基于预定义规则自动执行修复操作
+
+      ## AIOps架构
+      ```
+      数据源 → 数据采集 → 数据处理 → ML分析 → 智能决策 → 自动执行
+        │         │          │         │          │          │
+      监控工具   Agent     清洗聚合   模型训练   告警路由   工作流
+      日志系统   API       格式转换   异常检测   优先级    自动修复
+      事件系统   Webhook   存储      根因分析   建议      通知
+      ```
+
+      ## 实施步骤
+      1. **数据整合**：统一数据格式，建立数据湖
+      2. **基线建立**：使用历史数据训练ML模型
+      3. **规则配置**：定义告警规则和处理流程
+      4. **自动化实现**：编写自动化脚本和工作流
+      5. **持续优化**：基于反馈不断调整模型和规则
+
+      ## 常用工具
+      1. PagerDuty AIOps
+      2. Moogsoft
+      3. BigPanda
+      4. Dynatrace
+      5. Datadog
+
+  - id: aiops_noise_reduction
+    title: AIOps告警降噪最佳实践
+    category: aiops
+    tags: [aiops, 告警, 降噪, 去重, 聚合]
+    summary: 如何使用AIOps技术减少告警噪声，提高告警质量
+    content: |
+      # AIOps告警降噪最佳实践
+
+      ## 告警噪声问题
+      现代IT环境每天产生数百万条告警，其中大部分是噪声：
+      - 重复告警：同一问题触发多次告警
+      - 瞬态告警：短暂异常后自动恢复
+      - 关联告警：同一根因产生多个相关告警
+      - 低优先级告警：不影响业务的告警
+
+      ## 降噪策略
+      1. **告警去重**
+         - 基于时间窗口的去重
+         - 基于告警内容的去重
+         - 基于来源的去重
+
+      2. **告警聚合**
+         - 相似告警合并
+         - 关联告警分组
+         - 告警风暴识别
+
+      3. **智能过滤**
+         - 基于历史数据的学习
+         - 基于业务影响的优先级
+         - 基于时间的过滤
+
+      4. **动态阈值**
+         - 基于历史数据的基线
+         - 季节性调整
+         - 趋势预测
+
+      ## 实施建议
+      1. 建立告警分类标准
+      2. 配置告警抑制规则
+      3. 实现告警聚合逻辑
+      4. 定期review告警规则
+      5. 收集反馈持续优化
+
+  - id: aiops_root_cause_analysis
+    title: AIOps根因分析方法
+    category: aiops
+    tags: [aiops, rca, 根因分析, 故障定位]
+    summary: 使用AIOps技术进行自动化根因分析
+    content: |
+      # AIOps根因分析方法
+
+      ## 根因分析的重要性
+      快速定位问题根因是减少MTTR（平均修复时间）的关键。传统方法依赖人工经验，效率低且容易遗漏。
+
+      ## 根因分析方法
+      1. **时间序列分析**
+         - 事件时间线构建
+         - 因果关系推断
+         - 时间窗口关联
+
+      2. **拓扑分析**
+         - 服务依赖关系
+         - 故障传播路径
+         - 影响范围评估
+
+      3. **日志分析**
+         - 错误模式识别
+         - 异常日志聚合
+         - 关键词提取
+
+      4. **指标分析**
+         - 指标相关性分析
+         - 异常检测
+         - 趋势分析
+
+      ## ML技术应用
+      1. **聚类分析**：将相似的告警/日志聚类
+      2. **关联规则**：发现事件之间的关联关系
+      3. **决策树**：构建故障诊断决策树
+      4. **深度学习**：复杂模式识别
+
+      ## 工具推荐
+      1. Elastic ML
+      2. Datadog Watchdog
+      3. Dynatrace Davis
+      4. Moogsoft
+
+  - id: aiops_predictive_maintenance
+    title: AIOps预测性维护
+    category: aiops
+    tags: [aiops, 预测, 维护, 容量规划, 趋势]
+    summary: 使用AIOps技术实现预测性维护和容量规划
+    content: |
+      # AIOps预测性维护
+
+      ## 什么是预测性维护
+      预测性维护是基于数据分析和ML模型，预测设备/系统可能出现的问题，在故障发生前采取预防措施。
+
+      ## 预测场景
+      1. **容量预测**
+         - 磁盘空间预测
+         - CPU/内存使用趋势
+         - 网络带宽预测
+
+      2. **性能预测**
+         - 响应时间趋势
+         - 吞吐量预测
+         - 资源瓶颈预测
+
+      3. **故障预测**
+         - 硬件故障预测
+         - 软件异常预测
+         - 依赖服务风险预测
+
+      ## 实施步骤
+      1. **数据收集**：收集历史指标数据
+      2. **特征工程**：提取关键特征
+      3. **模型训练**：选择合适的ML算法
+      4. **模型验证**：使用历史数据验证
+      5. **部署监控**：实时预测和告警
+
+      ## 常用算法
+      1. 时间序列：ARIMA、Prophet、LSTM
+      2. 回归分析：线性回归、随机森林
+      3. 异常检测：Isolation Forest、One-Class SVM
+
+  # ==================== SRE 相关知识 ====================
+
+  - id: sre_principles
+    title: SRE核心原则与实践
+    category: sre
+    tags: [sre, 可靠性, sli, slo, 错误预算]
+    summary: 站点可靠性工程（SRE）的核心原则和最佳实践
+    content: |
+      # SRE核心原则与实践
+
+      ## 什么是SRE
+      SRE（Site Reliability Engineering）是Google提出的运维方法论，用软件工程的方法解决运维问题。
+
+      ## 核心原则
+      1. **拥抱风险**
+         - 100%可靠性不是目标
+         - 使用错误预算管理风险
+         - 平衡可靠性与迭代速度
+
+      2. **服务等级目标（SLO）**
+         - SLI：服务等级指标（可度量的指标）
+         - SLO：服务等级目标（期望达到的目标）
+         - SLA：服务等级协议（对外承诺）
+
+      3. **消除繁琐工作**
+         - 自动化重复性工作
+         - 减少人工干预
+         - 提高工程师效率
+
+      4. **监控分布式系统**
+         - 基于四个黄金信号：延迟、流量、错误、饱和度
+         - 告警应该是可操作的
+         - 避免告警疲劳
+
+      ## 错误预算
+      错误预算 = 1 - SLO目标
+      例如：SLO为99.9%，则错误预算为0.1%
+
+      错误预算的使用：
+      - 新功能发布
+      - 实验和创新
+      - 维护窗口
+      - 故障演练
+
+      ## 最佳实践
+      1. 建立SLO/SLI体系
+      2. 实施错误预算策略
+      3. 自动化on-call轮值
+      4. 建立无指责的复盘文化
+      5. 持续改进和学习
+
+  - id: sre_incident_management
+    title: SRE故障管理流程
+    category: sre
+    tags: [sre, 故障, incident, 响应, 复盘]
+    summary: SRE故障管理的最佳实践和流程
+    content: |
+      # SRE故障管理流程
+
+      ## 故障响应流程
+      1. **检测**：监控系统发现异常
+      2. **告警**：自动触发告警通知
+      3. **响应**：on-call工程师响应
+      4. **诊断**：快速定位问题
+      5. **修复**：实施修复措施
+      6. **恢复**：验证服务恢复
+      7. **复盘**：总结经验教训
+
+      ## On-Call最佳实践
+      1. **轮值制度**
+         - 合理的轮值周期
+         - 明确的升级路径
+         - 充分的培训准备
+
+      2. **响应时间**
+         - P0故障：5分钟内响应
+         - P1故障：15分钟内响应
+         - P2故障：1小时内响应
+
+      3. **Playbook**
+         - 预定义的处理流程
+         - 常见问题的解决方案
+         - 联系人和升级路径
+
+      ## 故障复盘（Postmortem）
+      复盘模板：
+      1. 故障概述
+      2. 时间线
+      3. 根本原因
+      4. 影响范围
+      5. 修复措施
+      6. 改进建议
+      7. 行动项
+
+      复盘原则：
+      - 无指责文化
+      - 关注系统改进
+      - 跟踪行动项执行
+
+  - id: sre_automation
+    title: SRE自动化实践
+    category: sre
+    tags: [sre, 自动化, toil, 减负]
+    summary: SRE如何通过自动化减少繁琐工作
+    content: |
+      # SRE自动化实践
+
+      ## 什么是Toil
+      Toil是指手动、重复、自动化、战术性的工作，没有持久价值。
+
+      ## Toil的特征
+      1. 手动操作
+      2. 重复性
+      3. 可自动化
+      4. 战术性
+      5. 没有持久价值
+
+      ## 自动化策略
+      1. **识别Toil**
+         - 记录重复性工作
+         - 评估自动化收益
+         - 优先级排序
+
+      2. **自动化工具**
+         - 脚本自动化
+         - 配置管理（Ansible、Puppet）
+         - 编排工具（Kubernetes、Terraform）
+         - CI/CD流水线
+
+      3. **自动化场景**
+         - 部署自动化
+         - 扩缩容自动化
+         - 故障恢复自动化
+         - 监控告警自动化
+
+      ## 自动化收益
+      1. 减少人工错误
+      2. 提高响应速度
+      3. 释放工程师时间
+      4. 提高系统可靠性
+
+      ## 实施建议
+      1. 从小处开始
+      2. 逐步扩展
+      3. 持续改进
+      4. 度量效果
+
+  # ==================== 可观测性相关知识 ====================
+
+  - id: observability_overview
+    title: 可观测性概述
+    category: observability
+    tags: [可观测性, observability, 监控, 指标, 日志, 链路追踪]
+    summary: 可观测性的核心概念、三大支柱和实施方法
+    content: |
+      # 可观测性概述
+
+      ## 什么是可观测性
+      可观测性是通过系统的外部输出来理解其内部状态的能力。
+
+      ## 三大支柱
+      1. **指标（Metrics）**
+         - 数值型时间序列数据
+         - 用于监控系统状态
+         - 例：CPU使用率、请求延迟、错误率
+
+      2. **日志（Logs）**
+         - 事件记录
+         - 用于调试和审计
+         - 例：应用日志、系统日志、访问日志
+
+      3. **链路追踪（Traces）**
+         - 请求在分布式系统中的完整路径
+         - 用于分析性能瓶颈
+         - 例：请求链路、服务依赖
+
+      ## 可观测性vs监控
+      - 监控：告诉你"什么"出了问题
+      - 可观测性：告诉你"为什么"出了问题
+
+      ## 实施方法
+      1. **数据采集**
+         - 应用埋点
+         - Agent采集
+         - 无侵入采集
+
+      2. **数据存储**
+         - 时序数据库（Prometheus、InfluxDB）
+         - 日志系统（ELK、Loki）
+         - 链路存储（Jaeger、Zipkin）
+
+      3. **数据分析**
+         - 查询分析
+         - 告警规则
+         - 可视化展示
+
+      ## 常用工具
+      1. Prometheus + Grafana（指标）
+      2. ELK Stack（日志）
+      3. Jaeger（链路追踪）
+      4. OpenTelemetry（统一采集）
+
+  - id: opentelemetry_guide
+    title: OpenTelemetry实战指南
+    category: observability
+    tags: [opentelemetry, otel, 指标, 日志, 链路追踪, 采集]
+    summary: OpenTelemetry的核心概念、架构和使用方法
+    content: |
+      # OpenTelemetry实战指南
+
+      ## 什么是OpenTelemetry
+      OpenTelemetry是CNCF的可观测性框架，提供统一的API、SDK和工具来采集遥测数据。
+
+      ## 核心组件
+      1. **API**：定义如何生成遥测数据
+      2. **SDK**：API的实现，提供配置和处理
+      3. **Collector**：接收、处理和导出数据
+      4. **Instrumentation**：自动/手动埋点
+
+      ## 数据类型
+      1. **Traces**：请求链路
+      2. **Metrics**：指标数据
+      3. **Logs**：日志数据
+
+      ## Collector架构
+      ```
+      Receivers → Processors → Exporters
+          │           │           │
+        接收数据     处理数据     导出数据
+      ```
+
+      ## 使用场景
+      1. 分布式链路追踪
+      2. 应用性能监控
+      3. 服务依赖分析
+      4. 错误定位
+
+      ## 最佳实践
+      1. 使用自动埋点减少代码侵入
+      2. 合理设置采样率
+      3. 统一数据格式
+      4. 选择合适的后端存储
+
+  - id: prometheus_best_practices
+    title: Prometheus监控最佳实践
+    category: observability
+    tags: [prometheus, 监控, 指标, 告警, grafana]
+    summary: Prometheus的核心概念、配置和最佳实践
+    content: |
+      # Prometheus监控最佳实践
+
+      ## 核心概念
+      1. **数据模型**：时间序列 = 指标名 + 标签 + 值 + 时间戳
+      2. **指标类型**：Counter、Gauge、Histogram、Summary
+      3. **PromQL**：强大的查询语言
+
+      ## 架构组件
+      1. **Prometheus Server**：核心服务器
+      2. **Exporters**：指标导出器
+      3. **Pushgateway**：短期任务推送
+      4. **Alertmanager**：告警管理
+
+      ## 命名规范
+      ```
+      <namespace>_<subsystem>_<name>_<unit>
+      ```
+      示例：
+      - http_requests_total
+      - node_cpu_seconds_total
+      - process_resident_memory_bytes
+
+      ## 告警规则
+      ```yaml
+      groups:
+        - name: example
+          rules:
+            - alert: HighErrorRate
+              expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+              for: 5m
+              labels:
+                severity: critical
+              annotations:
+                summary: "High error rate detected"
+      ```
+
+      ## Grafana集成
+      1. 配置Prometheus数据源
+      2. 创建Dashboard
+      3. 设置告警规则
+      4. 配置通知渠道
+
+      ## 性能优化
+      1. 合理设置采集间隔
+      2. 使用Recording Rules
+      3. 配置合适的存储策略
+      4. 使用联邦集群
+
+  - id: elk_stack_guide
+    title: ELK Stack日志分析指南
+    category: observability
+    tags: [elk, elasticsearch, logstash, kibana, 日志]
+    summary: ELK Stack的核心概念、架构和使用方法
+    content: |
+      # ELK Stack日志分析指南
+
+      ## 什么是ELK Stack
+      ELK是Elasticsearch + Logstash + Kibana的组合，用于日志收集、存储和分析。
+
+      ## 组件介绍
+      1. **Elasticsearch**
+         - 分布式搜索引擎
+         - 实时数据分析
+         - 水平扩展
+
+      2. **Logstash**
+         - 数据收集引擎
+         - 数据转换处理
+         - 多种输入输出支持
+
+      3. **Kibana**
+         - 数据可视化平台
+         - 仪表板创建
+         - 日志查询分析
+
+      ## 架构模式
+      ```
+      应用 → Filebeat → Logstash → Elasticsearch → Kibana
+                                ↑
+                              Redis/Kafka（可选缓冲）
+      ```
+
+      ## 最佳实践
+      1. **日志格式**
+         - 使用JSON格式
+         - 统一字段命名
+         - 包含必要上下文
+
+      2. **索引管理**
+         - 按时间分索引
+         - 配置ILM策略
+         - 定期清理旧数据
+
+      3. **性能优化**
+         - 合理分片策略
+         - 使用索引别名
+         - 配置缓存
+
+      4. **安全配置**
+         - 启用X-Pack安全
+         - 配置访问控制
+         - 加密通信
+
+  - id: grafana_dashboard_guide
+    title: Grafana仪表板设计指南
+    category: observability
+    tags: [grafana, 仪表板, dashboard, 可视化, 监控]
+    summary: Grafana仪表板的设计原则和最佳实践
+    content: |
+      # Grafana仪表板设计指南
+
+      ## 设计原则
+      1. **简洁明了**：避免信息过载
+      2. **层次分明**：从概览到详情
+      3. **一致性**：统一风格和配色
+      4. **可操作**：支持快速定位问题
+
+      ## 仪表板类型
+      1. **概览仪表板**
+         - 系统整体状态
+         - 关键指标汇总
+         - 告警状态
+
+      2. **服务仪表板**
+         - 服务健康状态
+         - 性能指标
+         - 错误分析
+
+      3. **基础设施仪表板**
+         - 主机资源使用
+         - 网络状态
+         - 存储状态
+
+      ## 常用面板
+      1. **Stat**：单值显示
+      2. **Gauge**：仪表盘
+      3. **Graph**：时间序列图
+      4. **Table**：表格数据
+      5. **Heatmap**：热力图
+
+      ## 最佳实践
+      1. 使用变量支持多环境
+      2. 配置合理的刷新间隔
+      3. 设置告警阈值
+      4. 添加注释说明
+      5. 定期review和优化
+
+      ## 常用PromQL
+      ```promql
+      # CPU使用率
+      100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      # 内存使用率
+      (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100
+
+      # 请求错误率
+      rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100
+      ```
+
+  # ==================== 混沌工程相关知识 ====================
+
+  - id: chaos_engineering
+    title: 混沌工程实践指南
+    category: best_practices
+    tags: [混沌工程, chaos, 故障注入, 韧性测试]
+    summary: 混沌工程的核心概念、实验方法和工具
+    content: |
+      # 混沌工程实践指南
+
+      ## 什么是混沌工程
+      混沌工程是通过在生产环境中注入故障，验证系统韧性的方法论。
+
+      ## 核心原则
+      1. **建立稳态假设**
+         - 定义系统正常行为
+         - 建立可度量的指标
+         - 确定稳态边界
+
+      2. **引入真实故障**
+         - 模拟真实世界的故障
+         - 从最小影响开始
+         - 逐步扩大范围
+
+      3. **观察系统行为**
+         - 监控关键指标
+         - 记录系统响应
+         - 分析偏差原因
+
+      4. **验证和改进**
+         - 验证假设是否成立
+         - 识别薄弱环节
+         - 实施改进措施
+
+      ## 常见实验场景
+      1. **基础设施**
+         - 服务器宕机
+         - 网络延迟/丢包
+         - 磁盘故障
+
+      2. **应用层**
+         - 服务不可用
+         - 响应延迟
+         - 错误返回
+
+      3. **依赖服务**
+         - 数据库故障
+         - 缓存失效
+         - 第三方服务不可用
+
+      ## 常用工具
+      1. Chaos Monkey（Netflix）
+      2. Litmus（Kubernetes）
+      3. Chaos Mesh
+      4. Gremlin
+      5. AWS Fault Injection Simulator
+
+      ## 实施建议
+      1. 从非生产环境开始
+      2. 建立回滚机制
+      3. 逐步扩大范围
+      4. 记录和分享经验
