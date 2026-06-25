@@ -69,6 +69,8 @@ class ITOpsAgent:
     
     def _register_tools(self):
         """注册Agent工具"""
+        from ..tools import get_tool
+        
         enabled = self._enabled_tools
         
         if enabled is None or "search_knowledge" in enabled:
@@ -144,6 +146,129 @@ class ITOpsAgent:
                 """
                 # 这里简化处理，实际应该调用服务器管理服务
                 return f"获取服务器状态: {server_id or 'all'}"
+        
+        # 新增运维工具
+        if enabled is None or "get_system_info" in enabled:
+            @self._agent.tool
+            async def get_system_info(
+                ctx: RunContext[AgentDeps],
+                info_type: str = "all",
+            ) -> str:
+                """获取系统信息（CPU、内存、磁盘、网络）
+                
+                Args:
+                    info_type: 信息类型（cpu/memory/disk/network/all）
+                """
+                tool = get_tool("get_system_info")
+                if tool:
+                    result = await tool.execute(info_type=info_type)
+                    return result.output if result.success else f"错误: {result.error}"
+                return "系统信息工具未初始化"
+        
+        if enabled is None or "manage_processes" in enabled:
+            @self._agent.tool
+            async def manage_processes(
+                ctx: RunContext[AgentDeps],
+                action: str = "list",
+                process_name: Optional[str] = None,
+                top_n: int = 10,
+            ) -> str:
+                """查看和管理系统进程
+                
+                Args:
+                    action: 操作类型（list/top/kill）
+                    process_name: 进程名称
+                    top_n: 显示前N个进程
+                """
+                tool = get_tool("manage_processes")
+                if tool:
+                    result = await tool.execute(action=action, process_name=process_name, top_n=top_n)
+                    return result.output if result.success else f"错误: {result.error}"
+                return "进程管理工具未初始化"
+        
+        if enabled is None or "network_diagnostics" in enabled:
+            @self._agent.tool
+            async def network_diagnostics(
+                ctx: RunContext[AgentDeps],
+                action: str = "ping",
+                target: str = "8.8.8.8",
+                port: Optional[int] = None,
+            ) -> str:
+                """网络诊断和检查
+                
+                Args:
+                    action: 操作类型（ping/port_check/dns/traceroute）
+                    target: 目标地址
+                    port: 端口号
+                """
+                tool = get_tool("network_diagnostics")
+                if tool:
+                    result = await tool.execute(action=action, target=target, port=port)
+                    return result.output if result.success else f"错误: {result.error}"
+                return "网络诊断工具未初始化"
+        
+        if enabled is None or "analyze_logs" in enabled:
+            @self._agent.tool
+            async def analyze_logs(
+                ctx: RunContext[AgentDeps],
+                log_file: str = "/var/log/syslog",
+                lines: int = 100,
+                keyword: Optional[str] = None,
+                level: Optional[str] = None,
+            ) -> str:
+                """分析系统日志
+                
+                Args:
+                    log_file: 日志文件路径
+                    lines: 显示行数
+                    keyword: 关键词过滤
+                    level: 日志级别（error/warning/info）
+                """
+                tool = get_tool("analyze_logs")
+                if tool:
+                    result = await tool.execute(log_file=log_file, lines=lines, keyword=keyword, level=level)
+                    return result.output if result.success else f"错误: {result.error}"
+                return "日志分析工具未初始化"
+        
+        if enabled is None or "manage_services" in enabled:
+            @self._agent.tool
+            async def manage_services(
+                ctx: RunContext[AgentDeps],
+                action: str = "status",
+                service_name: str = "",
+            ) -> str:
+                """管理系统服务
+                
+                Args:
+                    action: 操作类型（status/start/stop/restart/reload）
+                    service_name: 服务名称
+                """
+                tool = get_tool("manage_services")
+                if tool:
+                    result = await tool.execute(action=action, service_name=service_name)
+                    return result.output if result.success else f"错误: {result.error}"
+                return "服务管理工具未初始化"
+        
+        if enabled is None or "disk_management" in enabled:
+            @self._agent.tool
+            async def disk_management(
+                ctx: RunContext[AgentDeps],
+                action: str = "usage",
+                path: str = "/",
+                top_n: int = 10,
+            ) -> str:
+                """磁盘空间分析和管理
+                
+                Args:
+                    action: 操作类型（usage/cleanup/inodes）
+                    path: 路径
+                    top_n: 显示前N个大文件
+                """
+                tool = get_tool("disk_management")
+                if tool:
+                    result = await tool.execute(action=action, path=path, top_n=top_n)
+                    return result.output if result.success else f"错误: {result.error}"
+                return "磁盘管理工具未初始化"
     
     async def run(
         self,

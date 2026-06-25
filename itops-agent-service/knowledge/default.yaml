@@ -8,6 +8,12 @@ categories:
   - id: security
     name: 安全
     description: 安全相关知识
+  - id: automation
+    name: 自动化
+    description: 运维自动化相关知识
+  - id: cloud
+    name: 云计算
+    description: 云计算和容器化相关知识
 
 articles:
   - id: cpu_high
@@ -280,3 +286,584 @@ articles:
       2. 自动化部署
       3. 容量规划
       4. 故障演练
+
+  - id: docker_troubleshooting
+    title: Docker容器故障排查
+    category: troubleshooting
+    tags: [docker, 容器, kubernetes, k8s]
+    summary: Docker容器常见故障的排查和解决方法
+    content: |
+      # Docker容器故障排查
+
+      ## 常见问题
+      1. 容器无法启动
+      2. 容器频繁重启
+      3. 容器网络不通
+      4. 容器资源不足
+
+      ## 排查步骤
+      1. 查看容器状态和日志
+      2. 检查容器配置
+      3. 检查宿主机资源
+      4. 检查网络配置
+
+      ## 常用命令
+      ```bash
+      # 查看容器状态
+      docker ps -a
+
+      # 查看容器日志
+      docker logs <container_id>
+
+      # 进入容器调试
+      docker exec -it <container_id> /bin/bash
+
+      # 查看容器资源使用
+      docker stats <container_id>
+
+      # 检查容器网络
+      docker network inspect <network_name>
+
+      # 重启容器
+      docker restart <container_id>
+      ```
+
+      ## 解决方案
+      1. 检查Dockerfile和docker-compose配置
+      2. 增加容器资源限制
+      3. 配置健康检查
+      4. 使用容器编排工具（Kubernetes）
+
+  - id: kubernetes_troubleshooting
+    title: Kubernetes集群故障排查
+    category: troubleshooting
+    tags: [kubernetes, k8s, 集群, pod]
+    summary: Kubernetes集群常见故障的排查方法
+    content: |
+      # Kubernetes集群故障排查
+
+      ## Pod相关问题
+      1. Pod处于Pending状态
+      2. Pod处于CrashLoopBackOff状态
+      3. Pod无法调度
+      4. Pod网络不通
+
+      ## 常用命令
+      ```bash
+      # 查看Pod状态
+      kubectl get pods -A
+
+      # 查看Pod详情
+      kubectl describe pod <pod_name>
+
+      # 查看Pod日志
+      kubectl logs <pod_name>
+
+      # 进入Pod调试
+      kubectl exec -it <pod_name> -- /bin/bash
+
+      # 查看事件
+      kubectl get events --sort-by=.metadata.creationTimestamp
+
+      # 查看节点状态
+      kubectl get nodes
+      kubectl describe node <node_name>
+      ```
+
+      ## Service相关问题
+      1. Service无法访问
+      2. Endpoints为空
+      3. 负载均衡不生效
+
+      ## 排查流程
+      1. 检查Pod状态和日志
+      2. 检查Service配置
+      3. 检查网络策略
+      4. 检查资源配额
+
+  - id: nginx_troubleshooting
+    title: Nginx故障排查
+    category: troubleshooting
+    tags: [nginx, 反向代理, 负载均衡, web服务器]
+    summary: Nginx常见故障的排查和解决方法
+    content: |
+      # Nginx故障排查
+
+      ## 常见问题
+      1. 502 Bad Gateway
+      2. 504 Gateway Timeout
+      3. 413 Request Entity Too Large
+      4. 配置语法错误
+
+      ## 排查步骤
+      1. 检查Nginx配置语法
+      2. 查看Nginx错误日志
+      3. 检查上游服务状态
+      4. 检查系统资源
+
+      ## 常用命令
+      ```bash
+      # 检查配置语法
+      nginx -t
+
+      # 查看错误日志
+      tail -f /var/log/nginx/error.log
+
+      # 重新加载配置
+      nginx -s reload
+
+      # 查看Nginx状态
+      systemctl status nginx
+
+      # 测试配置
+      nginx -T
+      ```
+
+      ## 常见配置问题
+      1. worker_processes设置不当
+      2. keepalive_timeout配置不合理
+      3. proxy_buffer_size太小
+      4. SSL证书配置错误
+
+  - id: mysql_troubleshooting
+    title: MySQL数据库故障排查
+    category: troubleshooting
+    tags: [mysql, 数据库, 性能优化]
+    summary: MySQL数据库常见故障的排查和优化方法
+    content: |
+      # MySQL数据库故障排查
+
+      ## 性能问题
+      1. 慢查询
+      2. 连接数过多
+      3. 锁等待
+      4. 内存使用过高
+
+      ## 常用命令
+      ```bash
+      # 查看进程列表
+      SHOW PROCESSLIST;
+
+      # 查看慢查询
+      SHOW VARIABLES LIKE 'slow_query_log';
+      SHOW VARIABLES LIKE 'long_query_time';
+
+      # 查看表状态
+      SHOW TABLE STATUS;
+
+      # 查看索引使用情况
+      SHOW INDEX FROM <table_name>;
+
+      # 分析查询
+      EXPLAIN <query>;
+      ```
+
+      ## 优化建议
+      1. 优化SQL查询
+      2. 添加合适的索引
+      3. 配置查询缓存
+      4. 调整内存参数
+
+      ## 备份恢复
+      ```bash
+      # 备份数据库
+      mysqldump -u root -p <database> > backup.sql
+
+      # 恢复数据库
+      mysql -u root -p <database> < backup.sql
+      ```
+
+  - id: redis_troubleshooting
+    title: Redis故障排查
+    category: troubleshooting
+    tags: [redis, 缓存, 内存数据库]
+    summary: Redis常见故障的排查和解决方法
+    content: |
+      # Redis故障排查
+
+      ## 常见问题
+      1. 内存使用过高
+      2. 连接数过多
+      3. 持久化失败
+      4. 主从同步问题
+
+      ## 常用命令
+      ```bash
+      # 查看Redis信息
+      redis-cli INFO
+
+      # 查看内存使用
+      redis-cli INFO memory
+
+      # 查看客户端连接
+      redis-cli CLIENT LIST
+
+      # 查看慢查询
+      redis-cli SLOWLOG GET 10
+
+      # 查看key数量
+      redis-cli DBSIZE
+      ```
+
+      ## 内存优化
+      1. 设置maxmemory策略
+      2. 使用合适的数据结构
+      3. 配置过期时间
+      4. 定期清理无用数据
+
+      ## 持久化配置
+      1. RDB快照配置
+      2. AOF日志配置
+      3. 混合持久化
+      4. 备份策略
+
+  - id: log_management
+    title: 日志管理最佳实践
+    category: best_practices
+    tags: [logging, 日志, elk, loki]
+    summary: 企业级日志管理的最佳实践
+    content: |
+      # 日志管理最佳实践
+
+      ## 日志收集
+      1. 统一日志格式（JSON格式）
+      2. 集中日志收集
+      3. 实时日志传输
+      4. 日志分类和标签
+
+      ## 常用工具栈
+      1. ELK Stack（Elasticsearch + Logstash + Kibana）
+      2. Loki + Grafana
+      3. Fluentd
+      4. Filebeat
+
+      ## 日志存储
+      1. 热数据：最近7天，快速存储
+      2. 温数据：7-30天，普通存储
+      3. 冷数据：30天以上，归档存储
+
+      ## 日志分析
+      1. 实时告警
+      2. 趋势分析
+      3. 异常检测
+      4. 关联分析
+
+      ## 最佳实践
+      1. 日志级别规范
+      2. 敏感信息脱敏
+      3. 日志轮转策略
+      4. 审计日志保留
+
+  - id: backup_strategy
+    title: 备份策略最佳实践
+    category: best_practices
+    tags: [backup, 备份, 灾难恢复, dr]
+    summary: 企业级备份策略和灾难恢复最佳实践
+    content: |
+      # 备份策略最佳实践
+
+      ## 备份类型
+      1. 全量备份
+      2. 增量备份
+      3. 差异备份
+      4. 快照备份
+
+      ## 3-2-1备份原则
+      - 3份数据副本
+      - 2种不同存储介质
+      - 1份异地备份
+
+      ## 备份频率
+      1. 数据库：每天全量，每小时增量
+      2. 文件系统：每天增量，每周全量
+      3. 配置文件：每次变更备份
+      4. 应用代码：版本控制
+
+      ## 恢复测试
+      1. 定期恢复演练
+      2. 验证备份完整性
+      3. 记录恢复时间（RTO）
+      4. 记录恢复点（RPO）
+
+      ## 常用工具
+      1. rsync
+      2. restic
+      3. borgbackup
+      4. Velero（Kubernetes）
+
+  - id: incident_response
+    title: 故障响应流程
+    category: best_practices
+    tags: [incident, 故障, 应急响应, oncall]
+    summary: 企业级故障响应和应急处理流程
+    content: |
+      # 故障响应流程
+
+      ## 故障分级
+      - P0（紧急）：核心业务中断
+      - P1（严重）：重要功能异常
+      - P2（一般）：非核心功能异常
+      - P3（轻微）：体验问题
+
+      ## 响应流程
+      1. 故障发现（监控告警）
+      2. 故障确认（值班人员）
+      3. 故障升级（通知相关人员）
+      4. 故障定位（排查原因）
+      5. 故障修复（实施修复）
+      6. 故障验证（确认恢复）
+      7. 故障复盘（总结改进）
+
+      ## On-Call最佳实践
+      1. 轮值制度
+      2. 升级机制
+      3. 响应时间SLA
+      4. 文档化流程
+
+      ## 故障复盘模板
+      1. 故障时间线
+      2. 影响范围
+      3. 根本原因
+      4. 修复措施
+      5. 改进建议
+
+  - id: performance_tuning
+    title: 系统性能调优指南
+    category: best_practices
+    tags: [performance, 性能, 调优, 优化]
+    summary: Linux系统性能调优的最佳实践
+    content: |
+      # 系统性能调优指南
+
+      ## CPU调优
+      1. 调整进程优先级（nice/renice）
+      2. 绑定CPU亲和性（taskset）
+      3. 调整调度器参数
+      4. 使用cgroups限制资源
+
+      ## 内存调优
+      1. 调整swappiness
+      2. 配置huge pages
+      3. 优化内存分配
+      4. 清理内存缓存
+
+      ## 磁盘I/O调优
+      1. 选择合适的文件系统
+      2. 调整I/O调度器
+      3. 使用SSD优化
+      4. 配置RAID级别
+
+      ## 网络调优
+      1. 调整TCP参数
+      2. 优化网络缓冲区
+      3. 配置负载均衡
+      4. 使用CDN加速
+
+      ## 监控工具
+      1. vmstat
+      2. iostat
+      3. sar
+      4. perf
+
+  - id: ansible_automation
+    title: Ansible自动化运维
+    category: automation
+    tags: [ansible, 自动化, 配置管理, playbook]
+    summary: 使用Ansible实现运维自动化
+    content: |
+      # Ansible自动化运维
+
+      ## 核心概念
+      1. Inventory（主机清单）
+      2. Playbook（剧本）
+      3. Module（模块）
+      4. Role（角色）
+
+      ## 常用模块
+      1. command/shell - 执行命令
+      2. copy - 复制文件
+      3. template - 模板渲染
+      4. service - 服务管理
+      5. yum/apt - 包管理
+      6. user - 用户管理
+
+      ## Playbook示例
+      ```yaml
+      - hosts: webservers
+        become: yes
+        tasks:
+          - name: Install nginx
+            yum:
+              name: nginx
+              state: present
+          
+          - name: Start nginx
+            service:
+              name: nginx
+              state: started
+              enabled: yes
+      ```
+
+      ## 最佳实践
+      1. 使用Role组织代码
+      2. 版本控制Playbook
+      3. 测试环境验证
+      4. 幂等性设计
+
+  - id: terraform_infrastructure
+    title: Terraform基础设施即代码
+    category: automation
+    tags: [terraform, iac, 基础设施, 云原生]
+    summary: 使用Terraform管理云基础设施
+    content: |
+      # Terraform基础设施即代码
+
+      ## 核心概念
+      1. Provider（提供商）
+      2. Resource（资源）
+      3. State（状态）
+      4. Module（模块）
+
+      ## 常用命令
+      ```bash
+      # 初始化
+      terraform init
+
+      # 计划变更
+      terraform plan
+
+      # 应用变更
+      terraform apply
+
+      # 销毁资源
+      terraform destroy
+
+      # 查看状态
+      terraform show
+      ```
+
+      ## 最佳实践
+      1. 远程状态存储
+      2. 状态锁机制
+      3. 模块化设计
+      4. 变量管理
+      5. 环境隔离
+
+      ## 云提供商支持
+      1. AWS
+      2. Azure
+      3. 阿里云
+      4. 腾讯云
+
+  - id: ci_cd_pipeline
+    title: CI/CD流水线最佳实践
+    category: automation
+    tags: [ci/cd, jenkins, gitlab, github actions]
+    summary: 构建高效的CI/CD流水线
+    content: |
+      # CI/CD流水线最佳实践
+
+      ## 流水线阶段
+      1. 代码检出
+      2. 代码检查（Lint）
+      3. 单元测试
+      4. 构建打包
+      5. 集成测试
+      6. 部署预发
+      7. 验收测试
+      8. 部署生产
+
+      ## 常用工具
+      1. Jenkins
+      2. GitLab CI
+      3. GitHub Actions
+      4. ArgoCD
+
+      ## 最佳实践
+      1. 小批量频繁提交
+      2. 自动化测试覆盖
+      3. 快速反馈循环
+      4. 蓝绿部署/金丝雀发布
+      5. 回滚机制
+
+      ## 安全考虑
+      1. 代码扫描
+      2. 依赖检查
+      3. 镜像扫描
+      4. 密钥管理
+
+  - id: aws_best_practices
+    title: AWS云服务最佳实践
+    category: cloud
+    tags: [aws, 云服务, ec2, s3, rds]
+    summary: AWS云服务使用最佳实践
+    content: |
+      # AWS云服务最佳实践
+
+      ## 计算服务
+      1. EC2实例选择
+      2. Auto Scaling配置
+      3. Lambda无服务器
+      4. ECS/EKS容器服务
+
+      ## 存储服务
+      1. S3对象存储
+      2. EBS块存储
+      3. EFS文件存储
+      4. Glacier归档存储
+
+      ## 数据库服务
+      1. RDS关系型数据库
+      2. DynamoDB NoSQL数据库
+      3. ElastiCache缓存服务
+      4. Redshift数据仓库
+
+      ## 安全最佳实践
+      1. IAM权限管理
+      2. VPC网络隔离
+      3. Security Group配置
+      4. 数据加密
+
+      ## 成本优化
+      1. 预留实例
+      2. Spot实例
+      3. 资源标签
+      4. 成本分析工具
+
+  - id: alibaba_cloud_practices
+    title: 阿里云服务最佳实践
+    category: cloud
+    tags: [阿里云, ecs, oss, rds]
+    summary: 阿里云服务使用最佳实践
+    content: |
+      # 阿里云服务最佳实践
+
+      ## 计算服务
+      1. ECS实例选择
+      2. 弹性伸缩配置
+      3. 函数计算
+      4. 容器服务
+
+      ## 存储服务
+      1. OSS对象存储
+      2. 块存储
+      3. NAS文件存储
+      4. 归档存储
+
+      ## 数据库服务
+      1. RDS关系型数据库
+      2. MongoDB NoSQL数据库
+      3. Redis缓存服务
+      4. AnalyticDB数据仓库
+
+      ## 安全最佳实践
+      1. RAM权限管理
+      2. VPC网络隔离
+      3. 安全组配置
+      4. 数据加密
+
+      ## 成本优化
+      1. 包年包月
+      2. 按量付费
+      3. 资源标签
+      4. 成本管家

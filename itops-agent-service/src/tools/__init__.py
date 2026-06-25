@@ -270,12 +270,390 @@ class AlertQueryTool(BaseTool):
             )
 
 
+class SystemInfoTool(BaseTool):
+    """系统信息工具"""
+    
+    @property
+    def name(self) -> str:
+        return "get_system_info"
+    
+    @property
+    def description(self) -> str:
+        return "获取系统信息（CPU、内存、磁盘、网络）"
+    
+    async def execute(
+        self,
+        info_type: str = "all",
+    ) -> ToolResult:
+        """获取系统信息
+        
+        Args:
+            info_type: 信息类型（cpu/memory/disk/network/all）
+            
+        Returns:
+            ToolResult: 系统信息
+        """
+        commands = {
+            "cpu": "top -bn1 | head -20",
+            "memory": "free -h",
+            "disk": "df -h",
+            "network": "ip addr show",
+            "all": "uname -a && uptime && free -h && df -h",
+        }
+        
+        command = commands.get(info_type, commands["all"])
+        
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+            
+            return ToolResult(
+                success=proc.returncode == 0,
+                output=stdout.decode("utf-8", errors="replace"),
+                error=stderr.decode("utf-8", errors="replace") if proc.returncode != 0 else None,
+                metadata={"info_type": info_type},
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
+
+class ProcessTool(BaseTool):
+    """进程管理工具"""
+    
+    @property
+    def name(self) -> str:
+        return "manage_processes"
+    
+    @property
+    def description(self) -> str:
+        return "查看和管理系统进程"
+    
+    async def execute(
+        self,
+        action: str = "list",
+        process_name: Optional[str] = None,
+        top_n: int = 10,
+    ) -> ToolResult:
+        """管理进程
+        
+        Args:
+            action: 操作类型（list/top/kill）
+            process_name: 进程名称
+            top_n: 显示前N个进程
+            
+        Returns:
+            ToolResult: 执行结果
+        """
+        if action == "list":
+            command = f"ps aux --sort=-%mem | head -{top_n + 1}"
+        elif action == "top":
+            command = f"ps aux --sort=-%cpu | head -{top_n + 1}"
+        elif action == "kill" and process_name:
+            command = f"pkill -f {process_name}"
+        else:
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"无效的操作: {action}",
+            )
+        
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+            
+            return ToolResult(
+                success=proc.returncode == 0,
+                output=stdout.decode("utf-8", errors="replace"),
+                error=stderr.decode("utf-8", errors="replace") if proc.returncode != 0 else None,
+                metadata={"action": action},
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
+
+class NetworkTool(BaseTool):
+    """网络诊断工具"""
+    
+    @property
+    def name(self) -> str:
+        return "network_diagnostics"
+    
+    @property
+    def description(self) -> str:
+        return "网络诊断和检查"
+    
+    async def execute(
+        self,
+        action: str = "ping",
+        target: str = "8.8.8.8",
+        port: Optional[int] = None,
+    ) -> ToolResult:
+        """网络诊断
+        
+        Args:
+            action: 操作类型（ping/port_check/dns/traceroute）
+            target: 目标地址
+            port: 端口号
+            
+        Returns:
+            ToolResult: 诊断结果
+        """
+        if action == "ping":
+            command = f"ping -c 4 {target}"
+        elif action == "port_check" and port:
+            command = f"nc -zv {target} {port} 2>&1"
+        elif action == "dns":
+            command = f"nslookup {target}"
+        elif action == "traceroute":
+            command = f"traceroute -m 15 {target}"
+        else:
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"无效的操作: {action}",
+            )
+        
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+            
+            return ToolResult(
+                success=proc.returncode == 0,
+                output=stdout.decode("utf-8", errors="replace"),
+                error=stderr.decode("utf-8", errors="replace") if proc.returncode != 0 else None,
+                metadata={"action": action, "target": target},
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
+
+class LogAnalysisTool(BaseTool):
+    """日志分析工具"""
+    
+    @property
+    def name(self) -> str:
+        return "analyze_logs"
+    
+    @property
+    def description(self) -> str:
+        return "分析系统日志"
+    
+    async def execute(
+        self,
+        log_file: str = "/var/log/syslog",
+        lines: int = 100,
+        keyword: Optional[str] = None,
+        level: Optional[str] = None,
+    ) -> ToolResult:
+        """分析日志
+        
+        Args:
+            log_file: 日志文件路径
+            lines: 显示行数
+            keyword: 关键词过滤
+            level: 日志级别（error/warning/info）
+            
+        Returns:
+            ToolResult: 日志分析结果
+        """
+        if keyword:
+            command = f"tail -n {lines} {log_file} | grep -i '{keyword}'"
+        elif level:
+            command = f"tail -n {lines} {log_file} | grep -i '{level}'"
+        else:
+            command = f"tail -n {lines} {log_file}"
+        
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+            
+            return ToolResult(
+                success=proc.returncode == 0,
+                output=stdout.decode("utf-8", errors="replace"),
+                error=stderr.decode("utf-8", errors="replace") if proc.returncode != 0 else None,
+                metadata={"log_file": log_file, "lines": lines},
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
+
+class ServiceTool(BaseTool):
+    """服务管理工具"""
+    
+    @property
+    def name(self) -> str:
+        return "manage_services"
+    
+    @property
+    def description(self) -> str:
+        return "管理系统服务"
+    
+    async def execute(
+        self,
+        action: str = "status",
+        service_name: str = "",
+    ) -> ToolResult:
+        """管理服务
+        
+        Args:
+            action: 操作类型（status/start/stop/restart/reload）
+            service_name: 服务名称
+            
+        Returns:
+            ToolResult: 执行结果
+        """
+        if not service_name:
+            return ToolResult(
+                success=False,
+                output="",
+                error="请指定服务名称",
+            )
+        
+        if action == "status":
+            command = f"systemctl status {service_name}"
+        elif action == "start":
+            command = f"sudo systemctl start {service_name}"
+        elif action == "stop":
+            command = f"sudo systemctl stop {service_name}"
+        elif action == "restart":
+            command = f"sudo systemctl restart {service_name}"
+        elif action == "reload":
+            command = f"sudo systemctl reload {service_name}"
+        else:
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"无效的操作: {action}",
+            )
+        
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+            
+            return ToolResult(
+                success=proc.returncode == 0,
+                output=stdout.decode("utf-8", errors="replace"),
+                error=stderr.decode("utf-8", errors="replace") if proc.returncode != 0 else None,
+                metadata={"action": action, "service": service_name},
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
+
+class DiskTool(BaseTool):
+    """磁盘管理工具"""
+    
+    @property
+    def name(self) -> str:
+        return "disk_management"
+    
+    @property
+    def description(self) -> str:
+        return "磁盘空间分析和管理"
+    
+    async def execute(
+        self,
+        action: str = "usage",
+        path: str = "/",
+        top_n: int = 10,
+    ) -> ToolResult:
+        """磁盘管理
+        
+        Args:
+            action: 操作类型（usage/cleanup/inodes）
+            path: 路径
+            top_n: 显示前N个大文件
+            
+        Returns:
+            ToolResult: 执行结果
+        """
+        if action == "usage":
+            command = f"df -h {path}"
+        elif action == "cleanup":
+            command = f"du -sh {path}/* 2>/dev/null | sort -rh | head -{top_n}"
+        elif action == "inodes":
+            command = f"df -i {path}"
+        else:
+            return ToolResult(
+                success=False,
+                output="",
+                error=f"无效的操作: {action}",
+            )
+        
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+            
+            return ToolResult(
+                success=proc.returncode == 0,
+                output=stdout.decode("utf-8", errors="replace"),
+                error=stderr.decode("utf-8", errors="replace") if proc.returncode != 0 else None,
+                metadata={"action": action, "path": path},
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
+
 # 工具注册表
 TOOL_REGISTRY: dict[str, type[BaseTool]] = {
     "execute_command": CommandTool,
     "ssh_command": SSHCommandTool,
     "search_knowledge": KnowledgeSearchTool,
     "query_alerts": AlertQueryTool,
+    "get_system_info": SystemInfoTool,
+    "manage_processes": ProcessTool,
+    "network_diagnostics": NetworkTool,
+    "analyze_logs": LogAnalysisTool,
+    "manage_services": ServiceTool,
+    "disk_management": DiskTool,
 }
 
 

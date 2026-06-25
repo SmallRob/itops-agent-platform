@@ -403,11 +403,42 @@ cat /etc/resolv.conf
     ) -> list[SearchResult]:
         """搜索知识库
         
-        使用简单的关键词匹配，实际项目中应使用向量搜索
+        使用增强的关键词匹配，支持同义词和更好的相关度计算
         """
         results: list[SearchResult] = []
         query_lower = query.lower()
         query_words = set(query_lower.split())
+        
+        # 同义词映射
+        synonyms = {
+            "cpu": ["处理器", "处理器", "负载", "load"],
+            "memory": ["内存", "ram", "oom"],
+            "disk": ["磁盘", "存储", "硬盘", "空间"],
+            "network": ["网络", "连接", "网卡", "网络"],
+            "service": ["服务", "进程", "daemon"],
+            "log": ["日志", "logs"],
+            "docker": ["容器", "container"],
+            "kubernetes": ["k8s", "kube"],
+            "nginx": ["反向代理", "web服务器"],
+            "mysql": ["数据库", "db", "sql"],
+            "redis": ["缓存", "cache"],
+            "cpu高": ["cpu使用率高", "负载高"],
+            "内存不足": ["内存泄漏", "oom"],
+            "磁盘满": ["磁盘空间不足", "存储满"],
+            "网络不通": ["网络故障", "连接失败"],
+            "服务挂了": ["服务宕机", "服务不可用"],
+        }
+        
+        # 扩展查询词（包含同义词）
+        expanded_words = set(query_words)
+        for word in query_words:
+            for key, values in synonyms.items():
+                if word in key or key in word:
+                    expanded_words.update(values)
+                for value in values:
+                    if word in value or value in word:
+                        expanded_words.add(key)
+                        expanded_words.update(values)
         
         for article in self.articles.values():
             # 类别过滤
@@ -418,31 +449,42 @@ cat /etc/resolv.conf
             score = 0.0
             highlights: list[str] = []
             
-            # 标题匹配
+            # 标题匹配（权重最高）
             title_lower = article.title.lower()
-            for word in query_words:
+            for word in expanded_words:
                 if word in title_lower:
-                    score += 0.4
+                    score += 0.5
                     highlights.append(f"标题匹配: {word}")
             
             # 标签匹配
             for tag in article.tags:
-                if tag.lower() in query_lower:
-                    score += 0.3
-                    highlights.append(f"标签匹配: {tag}")
-            
-            # 内容匹配
-            content_lower = article.content.lower()
-            for word in query_words:
-                if word in content_lower:
-                    score += 0.1
+                tag_lower = tag.lower()
+                for word in expanded_words:
+                    if word in tag_lower or tag_lower in word:
+                        score += 0.3
+                        highlights.append(f"标签匹配: {tag}")
+                        break
             
             # 摘要匹配
             if article.summary:
                 summary_lower = article.summary.lower()
-                for word in query_words:
+                for word in expanded_words:
                     if word in summary_lower:
                         score += 0.2
+                        break
+            
+            # 内容匹配（计算匹配词数量）
+            content_lower = article.content.lower()
+            matched_words = sum(1 for word in expanded_words if word in content_lower)
+            if matched_words > 0:
+                # 匹配词越多，分数越高
+                score += min(0.3, matched_words * 0.05)
+            
+            # 关键词短语匹配（连续词匹配）
+            if len(query_words) > 1:
+                if query_lower in content_lower:
+                    score += 0.2
+                    highlights.append(f"短语匹配: {query}")
             
             if score > 0:
                 results.append(SearchResult(
