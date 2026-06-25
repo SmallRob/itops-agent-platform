@@ -57,6 +57,8 @@ class AgentRegistry:
             name=config.name,
             system_prompt=config.system_prompt,
             model=config.model,
+            tools=config.tools or None,
+            metadata=config.metadata or None,
         )
 
 
