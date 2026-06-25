@@ -55,6 +55,7 @@ import agentServiceRoutes from './routes/agentServiceRoutes';
 import { schedulerService } from '@services/workflow';
 import { reportService } from '@services/report';
 import { copilotService } from '@services/agent';
+import { getAgentServiceClient } from '@services/agent/agentServiceClient';
 import { rootCauseAnalysisService } from '@services/ai';
 import { notificationService } from '@services/notification';
 import { remediationService } from '@services/ai';
@@ -112,6 +113,40 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 import { initAlertService } from '@services/alert';
 
+async function registerExistingAgents() {
+  try {
+    const client = getAgentServiceClient();
+
+    const isHealthy = await client.healthCheck();
+    if (!isHealthy) {
+      logger.warn('Agent service not available, skipping agent registration');
+      return;
+    }
+
+    const agents = db.prepare('SELECT * FROM agents').all() as Array<{
+      id: string;
+      name: string;
+      system_prompt: string;
+    }>;
+
+    for (const agent of agents) {
+      try {
+        await client.registerAgent(agent.id, {
+          name: agent.name,
+          system_prompt: agent.system_prompt,
+        });
+        logger.info(`Registered agent: ${agent.name}`);
+      } catch (error) {
+        logger.error(`Failed to register agent ${agent.name}:`, error);
+      }
+    }
+
+    logger.info(`Registered ${agents.length} agents with agent service`);
+  } catch (error) {
+    logger.error('Failed to register existing agents:', error);
+  }
+}
+
 async function initializeApp() {
   // 启动时仅检测 dbskiter，不在运行期自动安装依赖
   checkDbskiterAvailability().catch(() => { /* 错误已在函数内部记录 */ });
@@ -160,6 +195,7 @@ async function initializeApp() {
   initTokenBlacklist();
   startCircuitBreakerCleanup();
   startApprovalTimeoutChecker();
+  registerExistingAgents();
   
   logger.info('✅ Application initialization complete');
 }
