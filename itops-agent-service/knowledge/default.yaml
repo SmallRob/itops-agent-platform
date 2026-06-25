@@ -1,0 +1,282 @@
+categories:
+  - id: troubleshooting
+    name: 故障排查
+    description: 常见故障的排查和解决方法
+  - id: best_practices
+    name: 最佳实践
+    description: 运维最佳实践指南
+  - id: security
+    name: 安全
+    description: 安全相关知识
+
+articles:
+  - id: cpu_high
+    title: CPU使用率过高排查指南
+    category: troubleshooting
+    tags: [cpu, 性能, 排查]
+    summary: 本文介绍如何系统性地排查和解决CPU使用率过高的问题
+    content: |
+      # CPU使用率过高排查指南
+
+      ## 常见原因
+      1. 进程异常占用
+      2. 死循环或无限递归
+      3. 资源争用
+      4. 僵尸进程
+
+      ## 排查步骤
+      1. 使用 `top` 或 `htop` 查看CPU占用最高的进程
+      2. 使用 `ps aux --sort=-%cpu` 排序查看
+      3. 检查是否有异常进程
+      4. 分析进程堆栈
+
+      ## 常用命令
+      ```bash
+      # 查看CPU使用情况
+      top -bn1 | head -20
+
+      # 查看CPU占用最高的进程
+      ps aux --sort=-%cpu | head -10
+
+      # 查看进程树
+      pstree -p
+
+      # 查看特定进程的线程
+      ps -T -p <pid>
+      ```
+
+      ## 解决方案
+      1. 优化代码逻辑
+      2. 增加CPU资源
+      3. 配置资源限制
+      4. 重启异常进程
+
+  - id: memory_leak
+    title: 内存泄漏分析与解决
+    category: troubleshooting
+    tags: [memory, 内存, oom]
+    summary: 本文介绍内存泄漏的常见场景、分析工具和解决方案
+    content: |
+      # 内存泄漏分析与解决
+
+      ## 常见原因
+      1. 应用内存泄漏
+      2. 内存分配过多
+      3. 缓存未清理
+      4. 连接未释放
+
+      ## 排查步骤
+      1. 使用 `free -m` 查看内存使用情况
+      2. 使用 `top` 或 `ps` 查看内存占用最高的进程
+      3. 检查应用日志中的OOM错误
+      4. 使用内存分析工具
+
+      ## 常用命令
+      ```bash
+      # 查看内存使用情况
+      free -m
+
+      # 查看内存占用最高的进程
+      ps aux --sort=-%mem | head -10
+
+      # 查看OOM Killer日志
+      dmesg | grep -i oom
+
+      # 查看进程内存映射
+      cat /proc/<pid>/smaps
+      ```
+
+      ## 解决方案
+      1. 修复内存泄漏代码
+      2. 增加物理内存
+      3. 配置swap空间
+      4. 优化内存使用
+
+  - id: disk_full
+    title: 磁盘空间不足处理
+    category: troubleshooting
+    tags: [disk, 磁盘, 存储]
+    summary: 本文介绍磁盘空间不足的排查和解决方法
+    content: |
+      # 磁盘空间不足处理
+
+      ## 常见原因
+      1. 日志文件过大
+      2. 临时文件积累
+      3. 数据文件增长
+      4. 备份文件过多
+
+      ## 排查步骤
+      1. 使用 `df -h` 查看各分区使用情况
+      2. 使用 `du -sh` 定位大目录
+      3. 查找大文件
+      4. 检查日志轮转配置
+
+      ## 常用命令
+      ```bash
+      # 查看磁盘使用情况
+      df -h
+
+      # 查看当前目录大小
+      du -sh *
+
+      # 查找大文件
+      find / -type f -size +100M 2>/dev/null
+
+      # 查看日志文件大小
+      ls -lh /var/log/
+      ```
+
+      ## 解决方案
+      1. 清理过期日志
+      2. 配置日志轮转
+      3. 清理临时文件
+      4. 扩容磁盘空间
+
+  - id: service_down
+    title: 服务宕机处理
+    category: troubleshooting
+    tags: [service, 服务, 宕机]
+    summary: 本文介绍服务宕机的排查和恢复方法
+    content: |
+      # 服务宕机处理
+
+      ## 常见原因
+      1. 进程异常退出
+      2. 配置错误
+      3. 依赖服务故障
+      4. 资源不足
+
+      ## 排查步骤
+      1. 检查服务状态
+      2. 查看服务日志
+      3. 检查配置文件
+      4. 检查依赖服务
+
+      ## 常用命令
+      ```bash
+      # 检查服务状态
+      systemctl status <service>
+
+      # 查看服务日志
+      journalctl -u <service> -n 100
+
+      # 检查服务端口
+      netstat -tlnp | grep <port>
+
+      # 重启服务
+      systemctl restart <service>
+      ```
+
+      ## 解决方案
+      1. 修复配置错误
+      2. 解决依赖问题
+      3. 增加资源配额
+      4. 配置自动重启
+
+  - id: network_issue
+    title: 网络故障排查
+    category: troubleshooting
+    tags: [network, 网络, 连接]
+    summary: 本文提供网络故障的系统性排查流程
+    content: |
+      # 网络故障排查
+
+      ## 常见原因
+      1. 网卡故障
+      2. 路由问题
+      3. 防火墙规则
+      4. DNS解析问题
+
+      ## 排查步骤
+      1. 检查网卡状态
+      2. 测试网络连通性
+      3. 检查路由表
+      4. 检查防火墙规则
+
+      ## 常用命令
+      ```bash
+      # 查看网卡状态
+      ip addr show
+
+      # 测试网络连通性
+      ping -c 4 <host>
+
+      # 查看路由表
+      ip route show
+
+      # 查看防火墙规则
+      iptables -L -n
+
+      # 查看DNS配置
+      cat /etc/resolv.conf
+      ```
+
+      ## 解决方案
+      1. 修复网卡配置
+      2. 调整路由规则
+      3. 修改防火墙规则
+      4. 配置DNS服务器
+
+  - id: security_best_practices
+    title: Linux安全加固指南
+    category: security
+    tags: [security, 安全, 加固]
+    summary: Linux系统安全加固最佳实践
+    content: |
+      # Linux安全加固指南
+
+      ## 账户安全
+      1. 禁用root远程登录
+      2. 使用强密码策略
+      3. 配置密码过期策略
+      4. 限制sudo权限
+
+      ## 网络安全
+      1. 配置防火墙规则
+      2. 关闭不必要的端口
+      3. 使用SSH密钥认证
+      4. 配置fail2ban
+
+      ## 文件安全
+      1. 设置正确的文件权限
+      2. 定期检查SUID/SGID文件
+      3. 配置文件完整性检查
+      4. 加密敏感数据
+
+      ## 日志审计
+      1. 启用审计日志
+      2. 配置日志轮转
+      3. 定期分析日志
+      4. 集中日志管理
+
+  - id: monitoring_best_practices
+    title: 监控系统最佳实践
+    category: best_practices
+    tags: [monitoring, 监控, prometheus]
+    summary: 构建完善的监控系统的最佳实践
+    content: |
+      # 监控系统最佳实践
+
+      ## 监控层次
+      1. 基础设施监控（CPU、内存、磁盘、网络）
+      2. 应用监控（性能、错误率、响应时间）
+      3. 业务监控（关键指标、SLA）
+
+      ## 告警策略
+      1. 设置合理的阈值
+      2. 配置告警升级机制
+      3. 避免告警风暴
+      4. 定期review告警规则
+
+      ## 常用工具
+      1. Prometheus + Grafana
+      2. Zabbix
+      3. Nagios
+      4. ELK Stack
+
+      ## 最佳实践
+      1. 监控即代码
+      2. 自动化部署
+      3. 容量规划
+      4. 故障演练
