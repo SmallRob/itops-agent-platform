@@ -5,3 +5,5 @@ export { startCircuitBreakerCleanup, stopCircuitBreakerCleanup, callDoubaoAPI, c
 export { generateCompletion, executeAgentWithLLM, generateCompletionStream, generateWithTools } from './llmServiceEnhanced';
 export { default as EnhancedRAGService } from './enhancedRAGService';
 export { rootCauseAnalysisService } from './rootCauseAnalysisService';
+export { LLMRouter, estimateTokens, getLLMRouter, resetLLMRouter } from './llmRouter';
+export type { ProviderConfig, ProviderType, ChatRequest, ChatResponse, TokenUsage, HealthStatus } from './llmRouter';

@@ -64,6 +64,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { authenticateToken, requirePasswordChange } from './middleware/auth';
 import { rateLimiter, webhookIpFilter } from './middleware/rateLimiter';
 import { traceMiddleware } from './middleware/trace';
+import { prometheusMiddleware, metricsEndpoint } from './middleware/prometheusMiddleware';
 import { env } from './utils/env';
 import { logger } from './utils/logger';
 import { initTokenBlacklist } from '@services/security';
@@ -102,6 +103,7 @@ setServerInstances(httpServer, io);
 
 app.use(helmet());
 app.use(traceMiddleware);
+app.use(prometheusMiddleware);
 app.use(morgan('combined'));
 app.use(cors({
   origin: env.ALLOWED_ORIGINS,
@@ -216,6 +218,9 @@ app.get('/health', async (_req, res) => {
   const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
   res.status(statusCode).json(health);
 });
+
+// Prometheus 指标端点 - 不需要认证
+app.get('/metrics', metricsEndpoint);
 
 app.get('/health/live', (_req, res) => {
   res.json({ status: 'alive', timestamp: new Date().toISOString() });
