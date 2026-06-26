@@ -8,7 +8,7 @@
 **一句话描述**：管理AI Agent的生命周期，支持多Agent协作执行复杂运维任务。
 
 **边界说明**：
-- **负责**：Agent CRUD、Agent执行器、多Agent协作、AI模型集成、Copilot助手
+- **负责**：Agent CRUD、Agent执行器、多Agent协作、AI模型集成、LLM多Provider路由、Copilot助手
 - **不负责**：工作流编排（工作流域）、告警处理（告警域）
 
 ## 2. 子模块
@@ -19,6 +19,7 @@
 | Agent执行器 | 单Agent任务执行、LLM调用 | `backend/src/services/agentExecutor.ts` |
 | 多Agent协作 | 多Agent协同工作、任务分解 | `backend/src/services/multiAgentCollaboration.ts` |
 | AI模型服务 | 多模型支持、负载均衡、熔断 | `backend/src/services/llmService.ts`, `aiModelService.ts` |
+| LLM多Provider路由器 | 动态Provider管理（OpenAI/Anthropic/Zhipu/Gemini/Custom）、自动故障转移、智谱JWT签名、Token估算 | `backend/src/services/ai/llmRouter.ts` |
 | Copilot助手 | AI对话助手、上下文感知 | `backend/src/services/copilotService.ts` |
 
 ## 3. 外部依赖

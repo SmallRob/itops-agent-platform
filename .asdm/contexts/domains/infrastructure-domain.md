@@ -5,11 +5,11 @@
 
 ## 1. 领域概述
 
-**一句话描述**：平台基础设施服务，提供认证授权、通知推送、数据备份、健康监控等横切关注点。
+**一句话描述**：平台基础设施服务，提供认证授权、通知推送、数据备份、健康监控、Token预算控制、Prometheus指标等横切关注点。
 
 **边界说明**：
-- **负责**：用户认证、JWT管理、通知渠道、数据备份、健康检查、审计日志、脚本管理、系统设置
-- **不负责**：具体业务逻辑（各业务域）
+- **负责**：用户认证、JWT管理、通知渠道、数据备份、健康检查、审计日志、脚本管理、系统设置、LLM用量预算、监控指标暴露
+- **不负责**：具体业务逻辑（各业务域）、命令安全策略（安全域）
 
 ## 2. 子模块
 
@@ -23,6 +23,8 @@
 | 审计日志 | 操作审计记录 | `backend/src/services/auditService.ts` |
 | 脚本管理 | 运维脚本存储 | `backend/src/routes/scriptRoutes.ts` |
 | 系统设置 | 全局配置管理 | `backend/src/routes/settingsRoutes.ts` |
+| Token预算控制 | 日/月/用户维度LLM用量限额管理 | `backend/src/services/ai/tokenBudget.ts` |
+| Prometheus监控 | 9项指标暴露（LLM/命令/Agent/HTTP）、/metrics端点 | `backend/src/services/monitoring/prometheusMetrics.ts` |
 
 ## 3. 外部依赖
 

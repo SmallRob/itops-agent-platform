@@ -31,7 +31,8 @@
 | [网络设备域](domains/network-domain.md) | 网络设备管理、SNMP、拓扑发现 | networkDeviceService, snmpService |
 | [知识库域](domains/knowledge-domain.md) | 知识库管理、RAG增强检索 | knowledgeRoutes, enhancedRAGService |
 | [自动修复域](domains/remediation-domain.md) | 修复策略、执行、审计 | remediationService, aiRemediationService |
-| [基础设施域](domains/infrastructure-domain.md) | 认证、通知、备份、健康检查 | authRoutes, notificationService |
+| [安全域](domains/security-domain.md) | 命令安全策略、分级管控、沙箱隔离 | commandPolicyService |
+| [基础设施域](domains/infrastructure-domain.md) | 认证、通知、备份、健康检查、Token预算、Prometheus监控 | authRoutes, tokenBudget, prometheusMetrics |
 
 ## 4. 构建指南
 
