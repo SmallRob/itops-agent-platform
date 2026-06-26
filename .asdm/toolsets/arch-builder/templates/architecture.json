@@ -1,0 +1,110 @@
+{
+  "title": "ITOps Agent Platform — Enterprise IT Automation Architecture",
+  "type": "architecture",
+  "style": 1,
+  "viewBox": "0 0 960 780",
+  "layers": [
+    {
+      "id": "frontend",
+      "name": "前端层 Frontend (React 18 + Vite)",
+      "color": "#3b82f6",
+      "y": 60,
+      "height": 100,
+      "components": [
+        { "id": "dashboard", "name": "Dashboard", "type": "page", "desc": "运维仪表盘" },
+        { "id": "workflow-ui", "name": "Workflow UI", "type": "page", "desc": "工作流编排" },
+        { "id": "agent-ui", "name": "Agent Chat", "type": "page", "desc": "AI 对话" },
+        { "id": "server-ui", "name": "Server Mgmt", "type": "page", "desc": "服务器管理" },
+        { "id": "alert-ui", "name": "Alert Center", "type": "page", "desc": "告警中心" },
+        { "id": "knowledge-ui", "name": "Knowledge", "type": "page", "desc": "知识库" }
+      ]
+    },
+    {
+      "id": "api",
+      "name": "API 层 API Layer (Express.js + Socket.IO)",
+      "color": "#8b5cf6",
+      "y": 190,
+      "height": 80,
+      "components": [
+        { "id": "express", "name": "Express Router", "type": "gateway", "desc": "47 路由模块" },
+        { "id": "socketio", "name": "Socket.IO", "type": "gateway", "desc": "实时通信" },
+        { "id": "auth-mw", "name": "Auth/JWT", "type": "middleware" },
+        { "id": "prom-mw", "name": "Prometheus", "type": "middleware", "desc": "指标中间件" }
+      ]
+    },
+    {
+      "id": "services",
+      "name": "服务层 Services Layer (55+ Services)",
+      "color": "#10b981",
+      "y": 300,
+      "height": 210,
+      "components": [
+        { "id": "agent-exec", "name": "Agent Executor", "type": "service", "desc": "多Agent协作" },
+        { "id": "workflow-exec", "name": "Workflow Engine", "type": "service", "desc": "工作流执行" },
+        { "id": "alert-svc", "name": "Alert Service", "type": "service", "desc": "告警/降噪/关联" },
+        { "id": "llm-router", "name": "LLM Router", "type": "service", "desc": "多Provider路由" },
+        { "id": "cmd-policy", "name": "Command Policy", "type": "service", "desc": "5级安全分类" },
+        { "id": "rag-svc", "name": "RAG Service", "type": "service", "desc": "知识增强检索" },
+        { "id": "remediation", "name": "Remediation", "type": "service", "desc": "自动修复" },
+        { "id": "ssh-svc", "name": "SSH Service", "type": "service", "desc": "远程终端" },
+        { "id": "snmp-svc", "name": "SNMP Service", "type": "service", "desc": "网络设备" }
+      ]
+    },
+    {
+      "id": "infra",
+      "name": "基础设施层 Infrastructure",
+      "color": "#f59e0b",
+      "y": 540,
+      "height": 100,
+      "components": [
+        { "id": "token-budget", "name": "Token Budget", "type": "service", "desc": "配额管理" },
+        { "id": "prometheus", "name": "Prometheus", "type": "service", "desc": "9指标" },
+        { "id": "scheduler", "name": "Scheduler", "type": "service", "desc": "node-schedule" },
+        { "id": "backup", "name": "Backup", "type": "service", "desc": "备份恢复" },
+        { "id": "health", "name": "Health Check", "type": "service", "desc": "健康检查" }
+      ]
+    },
+    {
+      "id": "data",
+      "name": "数据层 Data Layer",
+      "color": "#ef4444",
+      "y": 670,
+      "height": 80,
+      "components": [
+        { "id": "sqlite", "name": "SQLite", "type": "database", "desc": "better-sqlite3" },
+        { "id": "migrations", "name": "Migrations", "type": "database", "desc": "17+ 迁移" },
+        { "id": "filestore", "name": "File Storage", "type": "database", "desc": "知识库/备份" }
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "dashboard", "to": "express", "label": "REST", "type": "request" },
+    { "from": "workflow-ui", "to": "express", "label": "REST", "type": "request" },
+    { "from": "agent-ui", "to": "socketio", "label": "WebSocket", "type": "request" },
+    { "from": "server-ui", "to": "ssh-svc", "label": "WebSocket", "type": "request" },
+    { "from": "alert-ui", "to": "express", "label": "REST", "type": "request" },
+    { "from": "knowledge-ui", "to": "express", "label": "REST", "type": "request" },
+    { "from": "express", "to": "auth-mw", "type": "control" },
+    { "from": "express", "to": "agent-exec", "label": "API", "type": "request" },
+    { "from": "express", "to": "workflow-exec", "label": "API", "type": "request" },
+    { "from": "express", "to": "alert-svc", "label": "API", "type": "request" },
+    { "from": "agent-exec", "to": "llm-router", "label": "Chat", "type": "data" },
+    { "from": "agent-exec", "to": "rag-svc", "label": "RAG", "type": "data" },
+    { "from": "agent-exec", "to": "cmd-policy", "label": "Validate", "type": "control" },
+    { "from": "workflow-exec", "to": "agent-exec", "label": "Dispatch", "type": "control" },
+    { "from": "alert-svc", "to": "agent-exec", "label": "Auto Analyze", "type": "control" },
+    { "from": "remediation", "to": "agent-exec", "label": "Execute", "type": "control" },
+    { "from": "llm-router", "to": "token-budget", "label": "Check", "type": "control" },
+    { "from": "rag-svc", "to": "sqlite", "label": "Query", "type": "data" },
+    { "from": "alert-svc", "to": "sqlite", "label": "CRUD", "type": "data" },
+    { "from": "workflow-exec", "to": "sqlite", "label": "State", "type": "data" },
+    { "from": "scheduler", "to": "alert-svc", "label": "Cron", "type": "async" },
+    { "from": "scheduler", "to": "workflow-exec", "label": "Cron", "type": "async" }
+  ],
+  "legend": {
+    "request": { "color": "#2563eb", "label": "请求流 Request" },
+    "data": { "color": "#059669", "label": "数据流 Data" },
+    "control": { "color": "#ea580c", "label": "控制流 Control" },
+    "async": { "color": "#6b7280", "label": "异步流 Async" }
+  }
+}

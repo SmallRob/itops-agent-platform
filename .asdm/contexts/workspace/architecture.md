@@ -1,5 +1,7 @@
 # 项目架构概览
 
+> 📊 可视化架构图：[SVG](../../../docs/architecture/itops-architecture-v1.svg) | [PNG](../../../docs/architecture/itops-architecture-v1.png)
+
 ## 1. 整体架构
 
 ```

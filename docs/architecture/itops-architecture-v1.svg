@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 780" width="960" height="780">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    </style>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#059669"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="780" rx="12" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="480" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">ITOps Agent Platform — Enterprise IT Automation Architecture</text>
+
+  <!-- 前端层 Frontend (React 18 + Vite) -->
+  <rect x="30" y="60" width="900" height="100" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" opacity="0.6"/>
+  <text x="45" y="78" font-size="11" font-weight="600" fill="#1e40af">前端层 Frontend (React 18 + Vite)</text>
+
+  <rect x="60" y="100" width="130" height="36" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="60" y="100" width="4" height="36" rx="2" fill="#3b82f6"/>
+  <text x="125" y="119" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Dashboard</text>
+  <text x="125" y="131" text-anchor="middle" font-size="9" fill="#64748b">运维仪表盘</text>
+  <rect x="202" y="100" width="130" height="36" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="202" y="100" width="4" height="36" rx="2" fill="#3b82f6"/>
+  <text x="267" y="119" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Workflow UI</text>
+  <text x="267" y="131" text-anchor="middle" font-size="9" fill="#64748b">工作流编排</text>
+  <rect x="344" y="100" width="130" height="36" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="344" y="100" width="4" height="36" rx="2" fill="#3b82f6"/>
+  <text x="409" y="119" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Agent Chat</text>
+  <text x="409" y="131" text-anchor="middle" font-size="9" fill="#64748b">AI 对话</text>
+  <rect x="486" y="100" width="130" height="36" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="486" y="100" width="4" height="36" rx="2" fill="#3b82f6"/>
+  <text x="551" y="119" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Server Mgmt</text>
+  <text x="551" y="131" text-anchor="middle" font-size="9" fill="#64748b">服务器管理</text>
+  <rect x="628" y="100" width="130" height="36" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="628" y="100" width="4" height="36" rx="2" fill="#3b82f6"/>
+  <text x="693" y="119" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Alert Center</text>
+  <text x="693" y="131" text-anchor="middle" font-size="9" fill="#64748b">告警中心</text>
+  <rect x="770" y="100" width="130" height="36" rx="6" fill="white" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="770" y="100" width="4" height="36" rx="2" fill="#3b82f6"/>
+  <text x="835" y="119" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Knowledge</text>
+  <text x="835" y="131" text-anchor="middle" font-size="9" fill="#64748b">知识库</text>
+
+  <!-- API 层 API Layer (Express.js + Socket.IO) -->
+  <rect x="30" y="190" width="900" height="80" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5" opacity="0.6"/>
+  <text x="45" y="208" font-size="11" font-weight="600" fill="#5b21b6">API 层 API Layer (Express.js + Socket.IO)</text>
+
+  <rect x="182" y="220" width="140" height="36" rx="6" fill="white" stroke="#8b5cf6" stroke-width="1.5"/>
+  <rect x="182" y="220" width="4" height="36" rx="2" fill="#8b5cf6"/>
+  <text x="252" y="239" text-anchor="middle" font-size="10" font-weight="600" fill="#1e293b">Express Router</text>
+  <text x="252" y="251" text-anchor="middle" font-size="9" fill="#64748b">47 路由模块</text>
+  <rect x="334" y="220" width="140" height="36" rx="6" fill="white" stroke="#8b5cf6" stroke-width="1.5"/>
+  <rect x="334" y="220" width="4" height="36" rx="2" fill="#8b5cf6"/>
+  <text x="404" y="239" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Socket.IO</text>
+  <text x="404" y="251" text-anchor="middle" font-size="9" fill="#64748b">实时通信</text>
+  <rect x="486" y="220" width="140" height="36" rx="6" fill="white" stroke="#a78bfa" stroke-width="1.5"/>
+  <rect x="486" y="220" width="4" height="36" rx="2" fill="#a78bfa"/>
+  <text x="556" y="239" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Auth/JWT</text>
+  <rect x="638" y="220" width="140" height="36" rx="6" fill="white" stroke="#a78bfa" stroke-width="1.5"/>
+  <rect x="638" y="220" width="4" height="36" rx="2" fill="#a78bfa"/>
+  <text x="708" y="239" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Prometheus</text>
+  <text x="708" y="251" text-anchor="middle" font-size="9" fill="#64748b">指标中间件</text>
+
+  <!-- 服务层 Services Layer (55+ Services) -->
+  <rect x="30" y="300" width="900" height="210" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" opacity="0.6"/>
+  <text x="45" y="318" font-size="11" font-weight="600" fill="#065f46">服务层 Services Layer (55+ Services)</text>
+
+  <rect x="110" y="317" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="110" y="317" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="180" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#1e293b">Agent Executor</text>
+  <text x="180" y="348" text-anchor="middle" font-size="9" fill="#64748b">多Agent协作</text>
+  <rect x="260" y="317" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="260" y="317" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="330" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#1e293b">Workflow Engine</text>
+  <text x="330" y="348" text-anchor="middle" font-size="9" fill="#64748b">工作流执行</text>
+  <rect x="410" y="317" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="410" y="317" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="480" y="336" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Alert Service</text>
+  <text x="480" y="348" text-anchor="middle" font-size="9" fill="#64748b">告警/降噪/关联</text>
+  <rect x="560" y="317" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="560" y="317" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="630" y="336" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">LLM Router</text>
+  <text x="630" y="348" text-anchor="middle" font-size="9" fill="#64748b">多Provider路由</text>
+  <rect x="710" y="317" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="710" y="317" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="780" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#1e293b">Command Policy</text>
+  <text x="780" y="348" text-anchor="middle" font-size="9" fill="#64748b">5级安全分类</text>
+  <rect x="185" y="392" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="185" y="392" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="255" y="411" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">RAG Service</text>
+  <text x="255" y="423" text-anchor="middle" font-size="9" fill="#64748b">知识增强检索</text>
+  <rect x="335" y="392" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="335" y="392" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="405" y="411" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Remediation</text>
+  <text x="405" y="423" text-anchor="middle" font-size="9" fill="#64748b">自动修复</text>
+  <rect x="485" y="392" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="485" y="392" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="555" y="411" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">SSH Service</text>
+  <text x="555" y="423" text-anchor="middle" font-size="9" fill="#64748b">远程终端</text>
+  <rect x="635" y="392" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="635" y="392" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="705" y="411" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">SNMP Service</text>
+  <text x="705" y="423" text-anchor="middle" font-size="9" fill="#64748b">网络设备</text>
+
+  <!-- 基础设施层 Infrastructure -->
+  <rect x="30" y="540" width="900" height="100" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" opacity="0.6"/>
+  <text x="45" y="558" font-size="11" font-weight="600" fill="#92400e">基础设施层 Infrastructure</text>
+
+  <rect x="106" y="580" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="106" y="580" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="176" y="599" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Token Budget</text>
+  <text x="176" y="611" text-anchor="middle" font-size="9" fill="#64748b">配额管理</text>
+  <rect x="258" y="580" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="258" y="580" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="328" y="599" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Prometheus</text>
+  <text x="328" y="611" text-anchor="middle" font-size="9" fill="#64748b">9指标</text>
+  <rect x="410" y="580" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="410" y="580" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="480" y="599" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Scheduler</text>
+  <text x="480" y="611" text-anchor="middle" font-size="9" fill="#64748b">node-schedule</text>
+  <rect x="562" y="580" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="562" y="580" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="632" y="599" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Backup</text>
+  <text x="632" y="611" text-anchor="middle" font-size="9" fill="#64748b">备份恢复</text>
+  <rect x="714" y="580" width="140" height="36" rx="6" fill="white" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="714" y="580" width="4" height="36" rx="2" fill="#10b981"/>
+  <text x="784" y="599" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Health Check</text>
+  <text x="784" y="611" text-anchor="middle" font-size="9" fill="#64748b">健康检查</text>
+
+  <!-- 数据层 Data Layer -->
+  <rect x="30" y="670" width="900" height="80" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5" opacity="0.6"/>
+  <text x="45" y="688" font-size="11" font-weight="600" fill="#991b1b">数据层 Data Layer</text>
+
+  <rect x="258" y="700" width="140" height="36" rx="6" fill="white" stroke="#ef4444" stroke-width="1.5"/>
+  <rect x="258" y="700" width="4" height="36" rx="2" fill="#ef4444"/>
+  <text x="328" y="719" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">SQLite</text>
+  <text x="328" y="731" text-anchor="middle" font-size="9" fill="#64748b">better-sqlite3</text>
+  <rect x="410" y="700" width="140" height="36" rx="6" fill="white" stroke="#ef4444" stroke-width="1.5"/>
+  <rect x="410" y="700" width="4" height="36" rx="2" fill="#ef4444"/>
+  <text x="480" y="719" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">Migrations</text>
+  <text x="480" y="731" text-anchor="middle" font-size="9" fill="#64748b">17+ 迁移</text>
+  <rect x="562" y="700" width="140" height="36" rx="6" fill="white" stroke="#ef4444" stroke-width="1.5"/>
+  <rect x="562" y="700" width="4" height="36" rx="2" fill="#ef4444"/>
+  <text x="632" y="719" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">File Storage</text>
+  <text x="632" y="731" text-anchor="middle" font-size="9" fill="#64748b">知识库/备份</text>
+
+  <!-- Connections -->
+  <line x1="125" y1="136" x2="252" y2="220" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="160" y="170" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="188" y="181" text-anchor="middle" font-size="8" fill="#2563eb">REST</text>
+  <line x1="267" y1="136" x2="252" y2="220" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="231" y="170" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="259" y="181" text-anchor="middle" font-size="8" fill="#2563eb">REST</text>
+  <line x1="409" y1="136" x2="404" y2="220" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="378" y="170" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="406" y="181" text-anchor="middle" font-size="8" fill="#2563eb">WebSocket</text>
+  <line x1="551" y1="136" x2="555" y2="392" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="525" y="256" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="553" y="267" text-anchor="middle" font-size="8" fill="#2563eb">WebSocket</text>
+  <line x1="693" y1="136" x2="252" y2="220" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="444" y="170" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="472" y="181" text-anchor="middle" font-size="8" fill="#2563eb">REST</text>
+  <line x1="835" y1="136" x2="252" y2="220" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="515" y="170" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="543" y="181" text-anchor="middle" font-size="8" fill="#2563eb">REST</text>
+  <line x1="322" y1="238" x2="486" y2="238" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <line x1="252" y1="256" x2="180" y2="317" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="188" y="278" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="216" y="289" text-anchor="middle" font-size="8" fill="#2563eb">API</text>
+  <line x1="252" y1="256" x2="330" y2="317" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="263" y="278" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="291" y="289" text-anchor="middle" font-size="8" fill="#2563eb">API</text>
+  <line x1="252" y1="256" x2="480" y2="317" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" opacity="0.7"/>
+  <rect x="338" y="278" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="366" y="289" text-anchor="middle" font-size="8" fill="#2563eb">API</text>
+  <line x1="250" y1="335" x2="560" y2="335" stroke="#059669" stroke-width="1.5" marker-end="url(#arrow-green)" opacity="0.7"/>
+  <rect x="377" y="327" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="405" y="338" text-anchor="middle" font-size="8" fill="#059669">Chat</text>
+  <line x1="180" y1="353" x2="255" y2="392" stroke="#059669" stroke-width="1.5" marker-end="url(#arrow-green)" opacity="0.7"/>
+  <rect x="189" y="364" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="217" y="375" text-anchor="middle" font-size="8" fill="#059669">RAG</text>
+  <line x1="250" y1="335" x2="710" y2="335" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <rect x="452" y="327" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="480" y="338" text-anchor="middle" font-size="8" fill="#ea580c">Validate</text>
+  <line x1="260" y1="335" x2="250" y2="335" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <rect x="227" y="327" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="255" y="338" text-anchor="middle" font-size="8" fill="#ea580c">Dispatch</text>
+  <line x1="410" y1="335" x2="250" y2="335" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <rect x="302" y="327" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="330" y="338" text-anchor="middle" font-size="8" fill="#ea580c">Auto Analyze</text>
+  <line x1="405" y1="392" x2="180" y2="353" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <rect x="264" y="364" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="292" y="375" text-anchor="middle" font-size="8" fill="#ea580c">Execute</text>
+  <line x1="630" y1="353" x2="176" y2="580" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <rect x="375" y="458" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="403" y="469" text-anchor="middle" font-size="8" fill="#ea580c">Check</text>
+  <line x1="255" y1="428" x2="328" y2="700" stroke="#059669" stroke-width="1.5" marker-end="url(#arrow-green)" opacity="0.7"/>
+  <rect x="263" y="556" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="291" y="567" text-anchor="middle" font-size="8" fill="#059669">Query</text>
+  <line x1="480" y1="353" x2="328" y2="700" stroke="#059669" stroke-width="1.5" marker-end="url(#arrow-green)" opacity="0.7"/>
+  <rect x="376" y="518" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="404" y="529" text-anchor="middle" font-size="8" fill="#059669">CRUD</text>
+  <line x1="330" y1="353" x2="328" y2="700" stroke="#059669" stroke-width="1.5" marker-end="url(#arrow-green)" opacity="0.7"/>
+  <rect x="301" y="518" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="329" y="529" text-anchor="middle" font-size="8" fill="#059669">State</text>
+  <line x1="480" y1="580" x2="480" y2="353" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow-gray)" stroke-dasharray="5,3" opacity="0.7"/>
+  <rect x="452" y="458" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="480" y="469" text-anchor="middle" font-size="8" fill="#6b7280">Cron</text>
+  <line x1="480" y1="580" x2="330" y2="353" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow-gray)" stroke-dasharray="5,3" opacity="0.7"/>
+  <rect x="377" y="458" width="56" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="405" y="469" text-anchor="middle" font-size="8" fill="#6b7280">Cron</text>
+
+  <!-- Tech Stack -->
+  <text x="480" y="770" text-anchor="middle" font-size="10" fill="#94a3b8">React 18 · Vite · TailwindCSS · Express.js · TypeScript · SQLite · Socket.IO · xterm.js · @xyflow/react</text>
+
+</svg>
