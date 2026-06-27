@@ -33,7 +33,7 @@ const ipWhitelist: readonly string[] = env.WEBHOOK_IP_WHITELIST
   : [];
 
 function isIpWhitelisted(ip: string | undefined): boolean {
-  if (ipWhitelist.length === 0) return true;
+  if (ipWhitelist.length === 0) return false;
   if (!ip) return false;
 
   const clientIp = ip.replace(/^::ffff:/, '');

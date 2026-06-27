@@ -6,12 +6,29 @@ import { credentialService } from '@services/security';
 
 const router = Router();
 
+// Sensitive keys that should never be returned in plaintext (SEC-001)
+const SENSITIVE_KEYS = new Set([
+  'DOUBAO_API_KEY',
+  'OPENAI_API_KEY',
+  'LOCAL_AI_API_KEY',
+  'JWT_SECRET',
+  'WEBHOOK_SECRET',
+  'BACKUP_ENCRYPTION_KEY',
+  'SMTP_PASSWORD',
+  'ALERT_EMAIL_PASS',
+]);
+
 router.get('/', (_req: Request, res: Response) => {
   try {
     const settings = db.prepare('SELECT * FROM settings').all() as Array<{ key: string; value: string }>;
     const settingsObj: Record<string, string> = {};
     settings.forEach((s) => {
-      settingsObj[s.key] = s.value;
+      // Mask sensitive values to prevent credential leakage
+      if (SENSITIVE_KEYS.has(s.key)) {
+        settingsObj[s.key] = maskApiKey(s.value);
+      } else {
+        settingsObj[s.key] = s.value;
+      }
     });
     res.json({ success: true, data: settingsObj });
   } catch {
@@ -209,13 +226,10 @@ router.put('/api-keys', (req: Request, res: Response) => {
     if (doubaoApiKey !== undefined) {
       if (doubaoApiKey === '') {
         safeLog('Deleting DOUBAO_API_KEY');
-        db.prepare('DELETE FROM settings WHERE key = ?').run('DOUBAO_API_KEY');
         credentialService.deleteCredential('doubao');
       } else {
         safeLog('Saving DOUBAO_API_KEY (encrypted):', maskApiKey(doubaoApiKey));
         credentialService.setCredential('doubao', doubaoApiKey);
-        // Also keep in settings for backwards compatibility
-        upsertStmt.run('DOUBAO_API_KEY', doubaoApiKey, doubaoApiKey);
       }
     }
     
@@ -223,13 +237,10 @@ router.put('/api-keys', (req: Request, res: Response) => {
     if (openaiApiKey !== undefined) {
       if (openaiApiKey === '') {
         safeLog('Deleting OPENAI_API_KEY');
-        db.prepare('DELETE FROM settings WHERE key = ?').run('OPENAI_API_KEY');
         credentialService.deleteCredential('openai');
       } else {
         safeLog('Saving OPENAI_API_KEY (encrypted):', maskApiKey(openaiApiKey));
         credentialService.setCredential('openai', openaiApiKey);
-        // Also keep in settings for backwards compatibility
-        upsertStmt.run('OPENAI_API_KEY', openaiApiKey, openaiApiKey);
       }
     }
     

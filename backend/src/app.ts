@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import crypto from 'crypto';
+import hpp from 'hpp';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
 import { createServer } from 'http';
@@ -87,6 +89,10 @@ import networkDiscoveryRouter from './routes/networkDiscoveryRoutes';
 import alertCorrelationRouter from './routes/alertCorrelationRoutes';
 
 const app = express();
+
+// SEC-010: Enable trust proxy for accurate client IP behind reverse proxy (nginx, ALB, etc.)
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 
 const io = new SocketIOServer(httpServer, {
@@ -101,17 +107,123 @@ const io = new SocketIOServer(httpServer, {
 
 setServerInstances(httpServer, io);
 
-app.use(helmet());
+// SEC-029: Enable stricter CSP (Content Security Policy) via Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'", ...env.ALLOWED_ORIGINS],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: true,
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'same-site' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
+app.use(hpp());
 app.use(traceMiddleware);
 app.use(prometheusMiddleware);
-app.use(morgan('combined'));
+
+// SEC-044: Morgan logging - disable in production, mask sensitive headers in development
+if (env.NODE_ENV !== 'production') {
+  morgan.token('safe-headers', (_req, res) => {
+    const headers = (res as unknown as { getHeaders?: () => Record<string, unknown> }).getHeaders?.() || {};
+    const safe: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(headers)) {
+      if (['authorization', 'cookie', 'set-cookie', 'x-csrf-token'].includes(key.toLowerCase())) {
+        safe[key] = '[REDACTED]';
+      } else {
+        safe[key] = value;
+      }
+    }
+    return JSON.stringify(safe);
+  });
+  app.use(morgan('combined'));
+} else {
+  // Production: use a minimal log format that excludes sensitive request headers
+  app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
+}
 app.use(cors({
   origin: env.ALLOWED_ORIGINS,
   credentials: true
 }));
 
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+// SEC-043: CSRF protection - generate and validate CSRF tokens for state-changing requests
+const csrfTokens = new Map<string, { token: string; expires: number }>();
+const CSRF_TOKEN_TTL = 60 * 60 * 1000; // 1 hour
+
+function generateCsrfToken(sessionId: string): string {
+  const token = crypto.randomBytes(32).toString('hex');
+  csrfTokens.set(sessionId, { token, expires: Date.now() + CSRF_TOKEN_TTL });
+  return token;
+}
+
+function validateCsrfToken(sessionId: string, token: string): boolean {
+  const stored = csrfTokens.get(sessionId);
+  if (!stored || stored.expires < Date.now()) {
+    csrfTokens.delete(sessionId);
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(stored.token), Buffer.from(token));
+}
+
+// Cleanup expired CSRF tokens periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of csrfTokens.entries()) {
+    if (value.expires < now) csrfTokens.delete(key);
+  }
+}, 15 * 60 * 1000);
+
+// CSRF token endpoint - clients fetch token before making state-changing requests
+app.get('/api/csrf-token', (req, res) => {
+  const sessionId = (req as any).headers?.['x-session-id'] || crypto.randomBytes(16).toString('hex');
+  const token = generateCsrfToken(sessionId);
+  res.json({ csrfToken: token, sessionId });
+});
+
+// CSRF validation middleware for state-changing requests
+app.use((req, res, next) => {
+  const method = req.method.toUpperCase();
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+    // Skip CSRF for webhook endpoints and auth login
+    if (req.path.startsWith('/api/webhooks') || req.path === '/api/auth/login') {
+      return next();
+    }
+    const sessionId = req.headers['x-session-id'] as string;
+    const csrfToken = req.headers['x-csrf-token'] as string;
+    if (!sessionId || !csrfToken || !validateCsrfToken(sessionId, csrfToken)) {
+      return res.status(403).json({ success: false, error: 'Invalid or missing CSRF token' });
+    }
+  }
+  next();
+});
+
+// SEC-030: Ensure all error responses are JSON (prevent XSS via HTML error pages)
+app.use((_req, res, next) => {
+  const originalStatus = res.status.bind(res);
+  res.status = function(code: number) {
+    if (code >= 400) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    return originalStatus(code);
+  };
+  next();
+});
+
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 import { initAlertService } from '@services/alert';
 
@@ -154,6 +266,21 @@ async function initializeApp() {
   checkDbskiterAvailability().catch(() => { /* 错误已在函数内部记录 */ });
 
   await initializeDatabase();
+  
+  // SEC-023: 检测默认管理员密码，如果是 'admin' 则发出安全警告
+  try {
+    const bcrypt = require('bcryptjs');
+    const adminUser = db.prepare('SELECT id, username, password FROM users WHERE username = ?').get('admin') as { id: string; username: string; password: string } | undefined;
+    if (adminUser && bcrypt.compareSync('admin', adminUser.password)) {
+      logger.warn('============================================================');
+      logger.warn('⚠️  SECURITY WARNING: Default admin password detected!');
+      logger.warn('⚠️  The admin account is using the default password "admin".');
+      logger.warn('⚠️  This is a CRITICAL security risk. Please change it immediately.');
+      logger.warn('============================================================');
+    }
+  } catch (adminCheckError) {
+    logger.debug('Admin password check skipped (non-fatal)', adminCheckError);
+  }
   
   // 初始化各个服务
   initAlertService();

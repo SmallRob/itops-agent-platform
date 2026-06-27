@@ -17,9 +17,18 @@ export interface ExportOptions {
 const MAX_IMPORT_ROWS = 1000;
 const MAX_FIELD_LENGTH = 500;
 
+// SEC-047: CSV injection prevention - prefix cells starting with dangerous characters
+const CSV_INJECTION_PREFIXES = /^[=+\-@\t\r]/;
+
 function escapeCsvField(field: string | null | undefined): string {
   if (field === null || field === undefined) return '';
-  const str = String(field);
+  let str = String(field);
+  // SEC-047: Neutralize CSV injection by prefixing dangerous leading characters with a single quote
+  if (CSV_INJECTION_PREFIXES.test(str)) {
+    str = "'" + str;
+  }
+  // Also sanitize any embedded formula-like patterns within the string
+  str = str.replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ');
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }

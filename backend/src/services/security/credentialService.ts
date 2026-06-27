@@ -45,21 +45,26 @@ export class CredentialService {
   }
 
   /**
-   * Derive the AES-256-GCM master key from JWT_SECRET using PBKDF2
+   * Derive the AES-256-GCM master key from CREDENTIAL_MASTER_KEY using PBKDF2
+   * Uses separate key from JWT_SECRET to prevent key coupling (SEC-005)
    */
   private deriveMasterKey(): void {
-    const jwtSecret = env.JWT_SECRET;
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is required for credential encryption');
+    // Use dedicated CREDENTIAL_MASTER_KEY if available, fall back to JWT_SECRET with warning
+    const masterKeySource = env.CREDENTIAL_MASTER_KEY || env.JWT_SECRET;
+    if (!masterKeySource) {
+      throw new Error('CREDENTIAL_MASTER_KEY or JWT_SECRET is required for credential encryption');
+    }
+    if (!env.CREDENTIAL_MASTER_KEY) {
+      logger.warn('⚠️ Using JWT_SECRET for credential encryption - set CREDENTIAL_MASTER_KEY for better security');
     }
     this.masterKey = crypto.pbkdf2Sync(
-      jwtSecret,
+      masterKeySource,
       SALT,
       PBKDF2_ITERATIONS,
       KEY_LENGTH,
       PBKDF2_DIGEST
     );
-    logger.info('🔑 Credential master key derived from JWT_SECRET');
+    logger.info('🔑 Credential master key derived');
   }
 
   /**

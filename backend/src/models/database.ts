@@ -22,6 +22,19 @@ let ioInstance: SocketIOServer | null = null;
 let maintenanceTimer: NodeJS.Timeout | null = null;
 let isMaintenanceRunning = false;
 
+// SEC-035: Validate SQL table/index names to prevent injection via concatenation
+function isValidSqlIdentifier(name: string): boolean {
+  // Allow only alphanumeric, underscores, and must start with letter or underscore
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
+}
+
+function safeSqlIdentifier(name: string): string {
+  if (!isValidSqlIdentifier(name)) {
+    throw new Error(`Invalid SQL identifier: ${name}`);
+  }
+  return name;
+}
+
 export function setIOInstance(io: SocketIOServer) {
   ioInstance = io;
 }
@@ -227,13 +240,15 @@ export function getTableIndexes(): Array<{
     const indexes: Array<{ tableName: string; indexName: string; columns: string; isUnique: boolean; rowCount: number }> = [];
     
     for (const table of tables) {
-      const tableIndexes = db.prepare(`PRAGMA index_list(${table.name})`).all() as Array<{ name: string; unique: number; origin: string }>;
-      
+      // SEC-035: Validate table name before SQL concatenation
+      const safeName = safeSqlIdentifier(table.name);
+      const tableIndexes = db.prepare(`PRAGMA index_list(${safeName})`).all() as Array<{ name: string; unique: number; origin: string }>;
+
       for (const idx of tableIndexes) {
         const columns = db.prepare(`PRAGMA index_info(${idx.name})`).all() as Array<{ name: string }>;
         const columnNames = columns.map(c => c.name).join(', ');
-        
-        const rowCountResult = db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get() as { count: number };
+
+        const rowCountResult = db.prepare(`SELECT COUNT(*) as count FROM ${safeName}`).get() as { count: number };
         
         indexes.push({
           tableName: table.name,
@@ -268,10 +283,12 @@ export function getQuerySuggestions(): Array<{
     ).all() as Array<{ name: string }>;
     
     for (const table of largeTables) {
-      const count = (db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get() as { count: number }).count;
-      
+      // SEC-035: Validate table name before SQL concatenation
+      const safeName = safeSqlIdentifier(table.name);
+      const count = (db.prepare(`SELECT COUNT(*) as count FROM ${safeName}`).get() as { count: number }).count;
+
       if (count > 10000) {
-        const indexes = db.prepare(`PRAGMA index_list(${table.name})`).all() as Array<Record<string, unknown>>;
+        const indexes = db.prepare(`PRAGMA index_list(${safeName})`).all() as Array<Record<string, unknown>>;
         if (indexes.length < 2) {
           suggestions.push({
             table: table.name,

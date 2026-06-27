@@ -86,7 +86,8 @@ interface WebhookSignatureConfig {
  *   - 比较方式：timingSafeEqual（防时序攻击）
  */
 function getWebhookConfig(source: string): WebhookSignatureConfig {
-  const enabled = env.WEBHOOK_VERIFY_ENABLED || false;
+  // SEC-020: Webhook 签名验证默认启用，除非显式设置 WEBHOOK_VERIFY_ENABLED=false
+  const enabled = env.WEBHOOK_VERIFY_ENABLED !== false;
   const secret = env.WEBHOOK_SECRET;
   return {
     enabled,

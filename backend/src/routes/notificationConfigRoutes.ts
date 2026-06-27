@@ -5,8 +5,53 @@ import { requireRole } from '../middleware/auth';
 import { notificationService } from '@services/notification';
 import { sendWeCom, sendDingTalk } from '@services/notification';
 import nodemailer from 'nodemailer';
+import { URL } from 'url';
 
 const router = Router();
+
+// SEC-038: Validate webhook URLs to prevent SSRF attacks
+function isValidWebhookUrl(urlStr: string): { valid: boolean; reason?: string } {
+  try {
+    const parsed = new URL(urlStr);
+
+    // Only allow http/https protocols
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { valid: false, reason: 'Webhook URL must use http or https protocol' };
+    }
+
+    // Block private/internal IP ranges
+    const hostname = parsed.hostname;
+    const privatePatterns = [
+      /^127\./,              // Loopback
+      /^10\./,               // Class A private
+      /^172\.(1[6-9]|2\d|3[01])\./, // Class B private
+      /^192\.168\./,         // Class C private
+      /^0\./,                // Invalid
+      /^169\.254\./,         // Link-local
+      /^::1$/,               // IPv6 loopback
+      /^fc00:/i,             // IPv6 private
+      /^fe80:/i,             // IPv6 link-local
+    ];
+
+    if (privatePatterns.some(p => p.test(hostname))) {
+      return { valid: false, reason: 'Webhook URL cannot point to private/internal addresses' };
+    }
+
+    // Block localhost
+    if (/^localhost$/i.test(hostname)) {
+      return { valid: false, reason: 'Webhook URL cannot point to localhost' };
+    }
+
+    // Block metadata endpoints
+    if (/^169\.254\.169\.254$/.test(hostname)) {
+      return { valid: false, reason: 'Webhook URL cannot point to cloud metadata endpoint' };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, reason: 'Invalid URL format' };
+  }
+}
 
 // 获取通知配置
 router.get('/', requireRole('admin'), async (_req: Request, res: Response) => {
@@ -83,6 +128,11 @@ router.post('/test/:channel', requireRole('admin'), async (req: Request, res: Re
         if (!webhook_url) {
           return res.status(400).json({ success: false, error: '企业微信 Webhook URL 不能为空' });
         }
+        // SEC-038: Validate webhook URL to prevent SSRF
+        const wecomUrlCheck = isValidWebhookUrl(webhook_url);
+        if (!wecomUrlCheck.valid) {
+          return res.status(400).json({ success: false, error: wecomUrlCheck.reason });
+        }
         await sendWeCom(webhook_url, {
           title: '🔔 ITOps Agent - 通知渠道测试',
           content: '这是一条测试消息，证明企业微信通知配置正确。\n> 时间: ' + new Date().toLocaleString(),
@@ -96,6 +146,11 @@ router.post('/test/:channel', requireRole('admin'), async (req: Request, res: Re
         const { webhook_url } = req.body;
         if (!webhook_url) {
           return res.status(400).json({ success: false, error: '钉钉 Webhook URL 不能为空' });
+        }
+        // SEC-038: Validate webhook URL to prevent SSRF
+        const dingtalkUrlCheck = isValidWebhookUrl(webhook_url);
+        if (!dingtalkUrlCheck.valid) {
+          return res.status(400).json({ success: false, error: dingtalkUrlCheck.reason });
         }
         await sendDingTalk(webhook_url, {
           title: '🔔 ITOps Agent - 通知渠道测试',

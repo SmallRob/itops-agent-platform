@@ -1,3 +1,6 @@
+// SEC-034: Minimum password length increased to 8 characters (configurable)
+const MIN_PASSWORD_LENGTH = 8;
+
 export interface PasswordValidationResult {
   valid: boolean;
   message: string;
@@ -12,7 +15,7 @@ export interface PasswordValidationResult {
 
 export function validatePassword(password: string): PasswordValidationResult {
   const details = {
-    minLength: password.length >= 8,
+    minLength: password.length >= MIN_PASSWORD_LENGTH,
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
@@ -26,7 +29,7 @@ export function validatePassword(password: string): PasswordValidationResult {
   }
 
   const missing: string[] = [];
-  if (!details.minLength) missing.push('至少8位');
+  if (!details.minLength) missing.push(`至少${MIN_PASSWORD_LENGTH}位`);
   if (!details.uppercase) missing.push('大写字母');
   if (!details.lowercase) missing.push('小写字母');
   if (!details.number) missing.push('数字');

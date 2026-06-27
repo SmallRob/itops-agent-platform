@@ -45,6 +45,9 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     response.stack = err.stack;
   }
 
+  // SEC-030: Ensure all error responses are JSON with anti-XSS headers
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.status(statusCode).json(response);
 }
 

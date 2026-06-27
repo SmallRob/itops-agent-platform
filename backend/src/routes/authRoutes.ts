@@ -75,7 +75,7 @@ router.post('/login', validateBody(authSchemas.login), async (req: Request, res:
     const refreshToken = jwt.sign(
       { id: user.id, type: 'refresh' },
       env.JWT_SECRET,
-      { expiresIn: '7d' } as SignOptions
+      { expiresIn: env.JWT_REFRESH_EXPIRES_IN } as SignOptions
     );
 
     db.prepare('UPDATE users SET updated_at = datetime(\'now\',\'localtime\') WHERE id = ?').run(user.id);
@@ -163,7 +163,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     const newRefreshToken = jwt.sign(
       { id: user.id, type: 'refresh' },
       env.JWT_SECRET,
-      { expiresIn: '7d' } as SignOptions
+      { expiresIn: env.JWT_REFRESH_EXPIRES_IN } as SignOptions
     );
 
     tokenBlacklist.addToBlacklist(refreshToken, 'token-refresh', decoded.id);
@@ -217,12 +217,19 @@ router.get('/me', authenticateToken, async (req: Request & { user?: { id: string
 // 退出登录
 router.post('/logout', authenticateToken, async (req: Request, res: Response) => {
   try {
+    const userId = (req as { user?: { id: string } }).user?.id;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       
-      // 将token加入黑名单
-      tokenBlacklist.addToBlacklist(token, 'user-logout', (req as { user?: { id: string } }).user?.id);
+      // 将access token加入黑名单
+      tokenBlacklist.addToBlacklist(token, 'user-logout', userId);
+    }
+
+    // SEC-012: 同时撤销 refresh token，防止登出后 refresh token 仍可用于刷新
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      tokenBlacklist.addToBlacklist(refreshToken, 'user-logout-refresh', userId);
     }
     
     res.json({

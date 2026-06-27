@@ -7,7 +7,45 @@ import path from 'path';
 import fs from 'fs';
 
 const router = Router();
-const upload = multer({ dest: '/tmp/itops-uploads/' });
+
+// SEC-037: Backup upload validation - file size limit (500MB) and allowed types
+const MAX_BACKUP_SIZE = 500 * 1024 * 1024; // 500MB
+const ALLOWED_BACKUP_EXTENSIONS = new Set(['.gz', '.tar', '.tar.gz', '.tgz', '.bak', '.sql', '.sql.gz', '.zip', '.json']);
+const BLOCKED_BACKUP_EXTENSIONS = new Set(['.exe', '.sh', '.bat', '.cmd', '.ps1', '.js', '.ts', '.py', '.rb', '.pl', '.php']);
+
+const upload = multer({
+  dest: '/tmp/itops-uploads/',
+  limits: { fileSize: MAX_BACKUP_SIZE },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const nameLower = file.originalname.toLowerCase();
+
+    if (BLOCKED_BACKUP_EXTENSIONS.has(ext)) {
+      return cb(new Error(`Blocked file type: ${ext}. Executable/script files are not allowed.`));
+    }
+
+    // Allow files with compound extensions like .tar.gz
+    const hasAllowedExt = ALLOWED_BACKUP_EXTENSIONS.has(ext) ||
+      nameLower.endsWith('.tar.gz') || nameLower.endsWith('.sql.gz');
+
+    if (!hasAllowedExt) {
+      return cb(new Error(`Unsupported backup file type: ${ext}. Allowed: ${Array.from(ALLOWED_BACKUP_EXTENSIONS).join(', ')}`));
+    }
+
+    // Validate MIME type (basic check)
+    const allowedMimes = [
+      'application/gzip', 'application/x-gzip', 'application/x-tar',
+      'application/x-compressed', 'application/zip', 'application/x-zip-compressed',
+      'application/octet-stream', 'application/json', 'application/x-sql',
+      'text/plain',
+    ];
+    if (file.mimetype && !allowedMimes.includes(file.mimetype)) {
+      return cb(new Error(`Invalid MIME type: ${file.mimetype}`));
+    }
+
+    cb(null, true);
+  }
+});
 
 router.get('/status', requireRole('admin'), (req: Request, res: Response) => {
   try {
@@ -128,7 +166,26 @@ router.post('/upload', requireRole('admin'), upload.single('backup'), async (req
         message: 'No file uploaded'
       });
     }
-    
+
+    // SEC-037: Additional file size validation at application level
+    if (req.file.size > MAX_BACKUP_SIZE) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        success: false,
+        message: `File too large. Maximum size is ${MAX_BACKUP_SIZE / (1024 * 1024)}MB`
+      });
+    }
+
+    // SEC-037: Validate filename doesn't contain path traversal
+    const sanitizedName = path.basename(req.file.originalname);
+    if (sanitizedName !== req.file.originalname || sanitizedName.includes('..')) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid filename'
+      });
+    }
+
     const backup = await backupService.uploadBackup(req.file.path, req.file.originalname);
     if (fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);

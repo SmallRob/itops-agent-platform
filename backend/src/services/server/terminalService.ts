@@ -240,23 +240,22 @@ export class TerminalService {
     }
   }
 
-  sendData(sessionId: string, data: string, userRole?: string): { success: boolean; reason?: string } {
+  sendData(sessionId: string, data: string, userRole: string): { success: boolean; reason?: string } {
     const session = activeSessions.get(sessionId);
     if (!session) {
       return { success: false, reason: 'Session not found' };
     }
 
-    if (userRole) {
-      const safetyCheck = checkCommandSafety(data, userRole);
-      if (!safetyCheck.allowed) {
-        logger.warn(`Terminal command blocked for user role ${userRole}: ${data.substring(0, 100)}`);
-        session.shell.write(`\r\n\x1b[31m[安全拦截] ${safetyCheck.reason}\x1b[0m\r\n`);
-        return { success: false, reason: safetyCheck.reason };
-      }
-      if (safetyCheck.severity === 'warning') {
-        logger.info(`Terminal command warning for user role ${userRole}: ${data.substring(0, 100)}`);
-        session.shell.write(`\r\n\x1b[33m[安全警告] ${safetyCheck.reason}\x1b[0m\r\n`);
-      }
+    // Always perform safety check (SEC-015)
+    const safetyCheck = checkCommandSafety(data, userRole || 'viewer');
+    if (!safetyCheck.allowed) {
+      logger.warn(`Terminal command blocked for user role ${userRole}: ${data.substring(0, 100)}`);
+      session.shell.write(`\r\n\x1b[31m[安全拦截] ${safetyCheck.reason}\x1b[0m\r\n`);
+      return { success: false, reason: safetyCheck.reason };
+    }
+    if (safetyCheck.severity === 'warning') {
+      logger.info(`Terminal command warning for user role ${userRole}: ${data.substring(0, 100)}`);
+      session.shell.write(`\r\n\x1b[33m[安全警告] ${safetyCheck.reason}\x1b[0m\r\n`);
     }
 
     try {

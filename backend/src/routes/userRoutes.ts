@@ -92,9 +92,42 @@ router.put('/:id', requireRole('admin'), async (req: Request, res: Response) => 
     const { id } = req.params;
     const { username, email, role, enabled, password } = req.body;
     
+    // SEC-045: Input validation for user update fields
+    const VALID_ROLES = ['admin', 'operator', 'viewer'];
+    const USERNAME_REGEX = /^[a-zA-Z0-9_\-]{2,50}$/;
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (username !== undefined) {
+      if (typeof username !== 'string' || !USERNAME_REGEX.test(username.trim())) {
+        return res.status(400).json({ success: false, error: 'Username must be 2-50 characters, alphanumeric with hyphens/underscores only' });
+      }
+    }
+    if (email !== undefined && email !== null && email !== '') {
+      if (typeof email !== 'string' || !EMAIL_REGEX.test(email.trim()) || email.length > 254) {
+        return res.status(400).json({ success: false, error: 'Invalid email format' });
+      }
+    }
+    if (role !== undefined) {
+      if (!VALID_ROLES.includes(role)) {
+        return res.status(400).json({ success: false, error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` });
+      }
+    }
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'Enabled must be a boolean value' });
+    }
+    
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    // SEC-045: Check username uniqueness if username is being changed
+    if (username) {
+      const trimmedUsername = username.trim();
+      const existingUser = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(trimmedUsername, id);
+      if (existingUser) {
+        return res.status(400).json({ success: false, error: 'Username already exists' });
+      }
     }
     
     const updates: string[] = [];
@@ -102,11 +135,11 @@ router.put('/:id', requireRole('admin'), async (req: Request, res: Response) => 
     
     if (username) {
       updates.push('username = ?');
-      params.push(username);
+      params.push(username.trim());
     }
     if (email !== undefined) {
       updates.push('email = ?');
-      params.push(email);
+      params.push(email ? email.trim() : null);
     }
     if (role) {
       updates.push('role = ?');

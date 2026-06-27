@@ -11,11 +11,22 @@ import type { FileItem, FileInfo } from '../types/fileManager';
 interface SocketWithUser extends Socket {
   user?: User;
   terminalSessionIds?: Set<string>;
+  // SEC-050: Rate limiting state per socket connection
+  messageRateLimiter?: {
+    count: number;
+    windowStart: number;
+  };
 }
+
+// SEC-050: WebSocket message rate limiting constants
+const WS_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute window
+const WS_RATE_LIMIT_MAX_MESSAGES = 200; // max messages per window
+const WS_RATE_LIMIT_BURST_MAX = 30; // max messages in quick succession (5 seconds)
+const WS_RATE_LIMIT_BURST_WINDOW_MS = 5 * 1000; // burst window
 
 const taskRooms = new Map<string, Set<string>>();
 
-function authenticateSocket(socket: Socket, next: (err?: Error) => void) {
+export function authenticateSocket(socket: Socket, next: (err?: Error) => void) {
   const token = socket.handshake.auth?.token || 
                 socket.handshake.headers?.authorization?.replace('Bearer ', '');
 
@@ -51,12 +62,59 @@ function authenticateSocket(socket: Socket, next: (err?: Error) => void) {
 export function setupWebSocket(io: SocketIOServer) {
   io.use(authenticateSocket);
 
+  // SEC-050: Rate limiting check function - returns true if message should be allowed
+  function checkRateLimit(socket: SocketWithUser): boolean {
+    const now = Date.now();
+    if (!socket.messageRateLimiter) {
+      socket.messageRateLimiter = { count: 0, windowStart: now };
+    }
+
+    const limiter = socket.messageRateLimiter;
+
+    // Reset window if expired
+    if (now - limiter.windowStart > WS_RATE_LIMIT_WINDOW_MS) {
+      limiter.count = 0;
+      limiter.windowStart = now;
+    }
+
+    limiter.count++;
+
+    // Check overall rate limit
+    if (limiter.count > WS_RATE_LIMIT_MAX_MESSAGES) {
+      logger.warn(`SEC-050: Rate limit exceeded for user ${socket.user?.username} (${socket.id}), ${limiter.count} messages in window`);
+      socket.emit('error', { error: 'Rate limit exceeded. Please slow down.' });
+      return false;
+    }
+
+    // Check burst limit (messages within a short burst window)
+    const windowElapsed = now - limiter.windowStart;
+    if (windowElapsed < WS_RATE_LIMIT_BURST_WINDOW_MS && limiter.count > WS_RATE_LIMIT_BURST_MAX) {
+      logger.warn(`SEC-050: Burst rate limit exceeded for user ${socket.user?.username} (${socket.id}), ${limiter.count} messages in ${windowElapsed}ms`);
+      socket.emit('error', { error: 'Too many messages. Please slow down.' });
+      return false;
+    }
+
+    return true;
+  }
+
   io.on('connection', (socket: Socket) => {
     const user = (socket as SocketWithUser).user;
     (socket as SocketWithUser).terminalSessionIds = new Set();
+    const token = socket.handshake.auth?.token ||
+                  socket.handshake.headers?.authorization?.replace('Bearer ', '');
     logger.info(`🔌 Client connected: ${socket.id} (User: ${user?.username})`);
 
+    // SEC-033: Periodic token blacklist re-check during WebSocket session
+    const blacklistCheckInterval = setInterval(() => {
+      if (user && token && tokenBlacklist.isBlacklisted(token)) {
+        logger.warn(`WebSocket: Token blacklisted during active session, disconnecting user ${user.username}`);
+        socket.emit('terminal:error', { error: 'Session has been revoked' });
+        socket.disconnect(true);
+      }
+    }, 60000); // Check every 60 seconds
+
     socket.on('task:subscribe', (taskId: string) => {
+      if (!checkRateLimit(socket as SocketWithUser)) return;
       socket.join(`task:${taskId}`);
       if (!taskRooms.has(taskId)) {
         taskRooms.set(taskId, new Set());
@@ -80,6 +138,11 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('terminal:open', async (data: { serverId: string; cols: number; rows: number }, callback: (result: { sessionId?: string; error?: string }) => void) => {
+      // SEC-033: Re-check token blacklist before opening each terminal
+      if (token && tokenBlacklist.isBlacklisted(token)) {
+        callback({ error: 'Session has been revoked' });
+        return;
+      }
       try {
         const result = await terminalService.createTerminalSession(data.serverId, data.cols, data.rows);
         
@@ -117,7 +180,9 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('terminal:data', (data: { sessionId: string; data: string }) => {
-      const role = (socket as SocketWithUser).user?.role;
+      // SEC-050: Rate limit check for high-volume terminal data events
+      if (!checkRateLimit(socket as SocketWithUser)) return;
+      const role = (socket as SocketWithUser).user?.role || 'user';
       terminalService.sendData(data.sessionId, data.data, role);
     });
 
@@ -143,6 +208,8 @@ export function setupWebSocket(io: SocketIOServer) {
     };
 
     socket.on('file:list', async (data: { sessionId: string; path: string }, callback: (result: { items?: FileItem[]; error?: string }) => void) => {
+      // SEC-050: Rate limit check for file operations
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         const items = await fileManagerService.listFiles(data.sessionId, data.path);
@@ -153,6 +220,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:read', async (data: { sessionId: string; path: string }, callback: (result: { content?: string; encoding?: string; error?: string }) => void) => {
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         const result = await fileManagerService.readFile(data.sessionId, data.path);
@@ -163,6 +231,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:write', async (data: { sessionId: string; path: string; content: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.writeFile(data.sessionId, data.path, data.content);
@@ -173,6 +242,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:delete', async (data: { sessionId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.delete(data.sessionId, data.path);
@@ -183,6 +253,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:rename', async (data: { sessionId: string; oldPath: string; newPath: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.rename(data.sessionId, data.oldPath, data.newPath);
@@ -193,6 +264,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:mkdir', async (data: { sessionId: string; path: string }, callback: (result: { success?: boolean; error?: string }) => void) => {
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         await fileManagerService.createDirectory(data.sessionId, data.path);
@@ -203,6 +275,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('file:info', async (data: { sessionId: string; path: string }, callback: (result: { info?: FileInfo; error?: string }) => void) => {
+      if (!checkRateLimit(socket as SocketWithUser)) { callback({ error: 'Rate limit exceeded' }); return; }
       if (!authorizeSession(data.sessionId, callback)) return;
       try {
         const info = await fileManagerService.getFileInfo(data.sessionId, data.path);
@@ -213,6 +286,7 @@ export function setupWebSocket(io: SocketIOServer) {
     });
 
     socket.on('disconnect', () => {
+      clearInterval(blacklistCheckInterval);
       logger.info(`❌ Client disconnected: ${socket.id}`);
       taskRooms.forEach((sockets, taskId) => {
         sockets.delete(socket.id);

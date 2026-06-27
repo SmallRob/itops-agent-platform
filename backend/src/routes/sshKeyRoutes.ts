@@ -69,7 +69,13 @@ router.get('/:id', validateParams(sshKeyIdSchema), (req: Request, res: Response)
     if (!key) {
       return res.status(404).json({ success: false, error: 'SSH key not found' });
     }
-    res.json({ success: true, data: key });
+    // SEC-021: 遮蔽敏感字段，不直接返回加密的密码和私钥
+    const maskedKey = {
+      ...key,
+      password: key.password ? '********' : null,
+      private_key: key.private_key ? '********' : null,
+    };
+    res.json({ success: true, data: maskedKey });
   } catch {
     res.status(500).json({ success: false, error: 'Failed to get SSH key' });
   }

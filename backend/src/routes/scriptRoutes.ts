@@ -6,7 +6,8 @@ import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+// SEC-039: Add role-based access control - viewers can list/read scripts
+router.get('/', requireRole('admin', 'operator', 'viewer'), (req: Request, res: Response) => {
   try {
     const { category, search } = req.query;
     let query = 'SELECT * FROM scripts WHERE 1=1';
@@ -38,7 +39,8 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
-router.get('/categories', (_req: Request, res: Response) => {
+// SEC-039: Read-only access for all authenticated users
+router.get('/categories', requireRole('admin', 'operator', 'viewer'), (_req: Request, res: Response) => {
   try {
     const categories = db.prepare('SELECT DISTINCT category FROM scripts WHERE category IS NOT NULL').all() as Array<Record<string, unknown>>;
     res.json({ success: true, data: categories.map(c => c.category) });
@@ -47,7 +49,8 @@ router.get('/categories', (_req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
+// SEC-039: Read-only access for all authenticated users
+router.get('/:id', requireRole('admin', 'operator', 'viewer'), (req: Request, res: Response) => {
   try {
     const script = db.prepare('SELECT * FROM scripts WHERE id = ?').get(req.params.id) as { parameters?: string; [key: string]: unknown };
     if (!script) {

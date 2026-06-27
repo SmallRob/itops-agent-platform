@@ -121,7 +121,7 @@ class TokenBlacklistService {
       return isBlacklisted;
     } catch (error) {
       logger.error('Failed to check token blacklist:', error);
-      return false;
+      return true; // fail-closed: treat DB errors as token being blacklisted
     }
   }
 

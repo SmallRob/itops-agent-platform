@@ -198,6 +198,64 @@ const DEFAULT_COMMAND_RULES: CommandRule[] = [
     writeSubcommands: ['-o', '-t'],
   },
 
+  // SEC-040: Additional MIXED command patterns for security coverage
+  {
+    name: 'usermod',
+    description: '修改用户属性',
+    command: 'usermod',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['--help'],
+    writeSubcommands: ['-a', '-G', '-s', '-d', '-l', '-L', '-U', '-e', '-f'],
+  },
+  {
+    name: 'groupdel',
+    description: '删除用户组',
+    command: 'groupdel',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['--help'],
+    writeSubcommands: [], // any usage is a write
+  },
+  {
+    name: 'su',
+    description: '切换用户',
+    command: 'su',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['--help', '--version'],
+    writeSubcommands: ['-', '-l', '-c'], // switch or run as another user
+  },
+  {
+    name: 'sysctl',
+    description: '内核参数管理',
+    command: 'sysctl',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['-a', '--all', '-r'],
+    writeSubcommands: ['-w', '--write', '-p'], // write or load config
+  },
+  {
+    name: 'tc',
+    description: '流量控制',
+    command: 'tc',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['qdisc show', 'class show', 'filter show', 'qdisc ls', 'class ls', 'filter ls'],
+    writeSubcommands: ['qdisc add', 'qdisc del', 'qdisc replace', 'class add', 'class del', 'class change', 'filter add', 'filter del'],
+  },
+  {
+    name: 'nsenter',
+    description: '进入命名空间',
+    command: 'nsenter',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['--help', '--version'],
+    writeSubcommands: ['-t', '-n', '-p', '-m', '-u', '-i', '-C'], // all usages are potentially dangerous
+  },
+  {
+    name: 'nmap',
+    description: '网络扫描工具',
+    command: 'nmap',
+    classification: CommandClass.MIXED,
+    readSubcommands: ['-sn', '-sL', '--list-interfaces', '--iflist', '-h', '--help'],
+    writeSubcommands: ['-sS', '-sT', '-sU', '-sV', '-O', '-A', '-p-', '--script', '-oN', '-oX'],
+  },
+
   // ----------------------------------------------------------
   // NETWORK — 网络访问命令（7 个）
   // ----------------------------------------------------------

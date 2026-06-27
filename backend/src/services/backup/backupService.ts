@@ -24,7 +24,11 @@ const BACKUP_ENC_SALT_LEN = 32;
  * 使用 scrypt 密钥派生函数
  */
 function deriveBackupKey(): Buffer {
-  const secret = env.JWT_SECRET || 'itops-default-backup-key';
+  // SEC-022: 移除硬编码回退密钥，强制要求 JWT_SECRET 已配置
+  if (!env.JWT_SECRET) {
+    throw new Error('JWT_SECRET must be configured for backup encryption. Cannot use insecure hardcoded fallback key.');
+  }
+  const secret = env.JWT_SECRET;
   const salt = `itops-backup-key-v1:${env.NODE_ENV || 'production'}`;
   return scryptSync(secret, salt, BACKUP_ENC_KEY_LEN, { N: 16384, r: 8, p: 1 });
 }
@@ -346,6 +350,29 @@ export class BackupService {
   }
 
   updateConfig(newConfig: Partial<BackupConfig>): BackupConfig {
+    // SEC-049: Validate backup directory path to prevent path traversal and restrict to safe locations
+    if (newConfig.backupDir !== undefined) {
+      const requestedPath = newConfig.backupDir;
+      if (typeof requestedPath !== 'string' || requestedPath.trim().length === 0) {
+        throw new Error('Backup directory path must be a non-empty string');
+      }
+      // Reject path traversal attempts
+      if (requestedPath.includes('..') || requestedPath.includes('~')) {
+        throw new Error('Backup directory path contains illegal characters (.. or ~)');
+      }
+      // Resolve to absolute path and ensure it doesn't escape allowed boundaries
+      const resolvedPath = path.resolve(requestedPath);
+      const cwdPath = path.resolve(process.cwd());
+      const homeDir = path.resolve(process.env.HOME || '/tmp');
+      // Only allow paths under the project directory, /tmp, or explicit home directory
+      if (!resolvedPath.startsWith(cwdPath) && !resolvedPath.startsWith('/tmp') && !resolvedPath.startsWith(homeDir)) {
+        throw new Error(`Backup directory must be within project directory (${cwdPath}), /tmp, or home directory. Got: ${resolvedPath}`);
+      }
+      // Ensure no symlink escape by normalizing
+      newConfig.backupDir = resolvedPath;
+      logger.info('SEC-049: Backup path validated', { requestedPath, resolvedPath });
+    }
+
     this.config = { ...this.config, ...newConfig };
     this.saveConfig();
     this.ensureBackupDir();

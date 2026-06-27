@@ -9,6 +9,75 @@ import { SYSTEM_OIDS, IF_MIB_OIDS, VENDOR_OIDS } from '@services/network';
 
 const router = Router();
 
+// SEC-041: Validate SNMP OID format (must be numeric dot notation like 1.3.6.1.2.1.1.1.0)
+function isValidOid(oid: string): boolean {
+  if (!oid || typeof oid !== 'string') return false;
+  // OID must be numeric dot notation: starts with 0, 1, or 2, followed by dot-separated integers
+  const oidPattern = /^(0|1|2)(\.(0|[1-9]\d*)){1,127}$/;
+  return oidPattern.test(oid);
+}
+
+// SEC-042: Validate SNMP trap/varbind data
+function isValidVarbindType(type: number): boolean {
+  // Valid SNMP v1/v2c varbind types
+  const validTypes = new Set([
+    1,   // Boolean
+    2,   // Integer
+    4,   // OctetString
+    5,   // Null
+    6,   // OID
+    64,  // IpAddress
+    65,  // Counter
+    66,  // Gauge
+    67,  // TimeTicks
+    68,  // Opaque
+    70,  // Counter64
+    128, // NoSuchObject
+    129, // NoSuchInstance
+    130, // EndOfMibView
+  ]);
+  return validTypes.has(type);
+}
+
+function validateTrapVarbinds(varbinds: Array<{ oid: string; value: string; type: number }>): string | null {
+  if (!Array.isArray(varbinds)) return 'varbinds must be an array';
+  if (varbinds.length > 100) return 'Too many varbinds (max 100)';
+  for (const vb of varbinds) {
+    if (!vb.oid || !isValidOid(vb.oid)) return `Invalid OID in varbind: ${vb.oid}`;
+    if (vb.value === undefined || vb.value === null) return 'Varbind value is required';
+    if (typeof vb.value === 'string' && vb.value.length > 10000) return 'Varbind value too long (max 10000 chars)';
+    if (vb.type !== undefined && !isValidVarbindType(vb.type)) return `Invalid varbind type: ${vb.type}`;
+  }
+  return null; // valid
+}
+
+// Validate host to prevent SSRF (SEC-008)
+function isValidSnmpHost(host: string): boolean {
+  if (!host || typeof host !== 'string') return false;
+  // Block obviously dangerous addresses
+  const blockedPatterns = [
+    /^0\.0\.0\.0$/,
+    /^169\.254\./, // Link-local
+    /^224\./, // Multicast
+    /^ff[0-9a-f]{2}:/i, // IPv6 multicast
+    /^\[/, // IPv6 bracket notation
+    /^localhost$/i,
+  ];
+  // Must look like an IP or hostname
+  const ipPattern = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+  const hostnamePattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!ipPattern.test(host) && !hostnamePattern.test(host)) return false;
+  if (blockedPatterns.some(p => p.test(host))) return false;
+  
+  // Validate IP octets
+  if (ipPattern.test(host)) {
+    const octets = host.split('.').map(Number);
+    if (octets.some(o => o < 0 || o > 255)) return false;
+  }
+  return true;
+}
+
 // ================================================================
 // SNMP 凭证管理
 // ================================================================
@@ -154,6 +223,10 @@ router.post('/test', async (req: Request, res: Response) => {
     const { host, port = 161, version = 'v2c', community = 'public',
       user, authProtocol, authKey, privProtocol, privKey } = req.body;
 
+    if (!isValidSnmpHost(host)) {
+      return res.status(400).json({ code: -1, message: 'Invalid host address' });
+    }
+
     const ok = await snmpService.testConnection(host, port, version as SnmpVersion, community);
     res.json({ code: ok ? 0 : -1, data: { reachable: ok } });
   } catch (error: any) {
@@ -195,6 +268,15 @@ router.post('/credentials/:id/test', async (req: Request, res: Response) => {
 router.post('/get', async (req: Request, res: Response) => {
   try {
     const { host, port = 161, version = 'v2c', community = 'public', oid = SYSTEM_OIDS.sysName } = req.body;
+    
+    if (!isValidSnmpHost(host)) {
+      return res.status(400).json({ code: -1, message: 'Invalid host address' });
+    }
+    // SEC-041: Validate OID format
+    if (oid && !isValidOid(oid)) {
+      return res.status(400).json({ code: -1, message: 'Invalid OID format. Must be numeric dot notation (e.g., 1.3.6.1.2.1.1.1.0)' });
+    }
+    
     const result = await snmpService.get(host, port, version as SnmpVersion, community, undefined, undefined, undefined, undefined, undefined, oid);
     res.json({ code: 0, data: result });
   } catch (error: any) {
@@ -206,6 +288,15 @@ router.post('/get', async (req: Request, res: Response) => {
 router.post('/walk', async (req: Request, res: Response) => {
   try {
     const { host, port = 161, version = 'v2c', community = 'public', oid = IF_MIB_OIDS.ifTable } = req.body;
+    
+    if (!isValidSnmpHost(host)) {
+      return res.status(400).json({ code: -1, message: 'Invalid host address' });
+    }
+    // SEC-041: Validate OID format
+    if (oid && !isValidOid(oid)) {
+      return res.status(400).json({ code: -1, message: 'Invalid OID format. Must be numeric dot notation (e.g., 1.3.6.1.2.1.1.1.0)' });
+    }
+    
     const results = await snmpService.walk(host, port, version as SnmpVersion, community, oid);
     res.json({ code: 0, data: results });
   } catch (error: any) {
@@ -217,6 +308,11 @@ router.post('/walk', async (req: Request, res: Response) => {
 router.post('/system-info', async (req: Request, res: Response) => {
   try {
     const { host, port = 161, version = 'v2c', community = 'public' } = req.body;
+    
+    if (!isValidSnmpHost(host)) {
+      return res.status(400).json({ code: -1, message: 'Invalid host address' });
+    }
+    
     const info = await snmpService.getSystemInfo(host, port, version as SnmpVersion, community);
     res.json({ code: 0, data: info });
   } catch (error: any) {
@@ -228,6 +324,11 @@ router.post('/system-info', async (req: Request, res: Response) => {
 router.post('/interfaces', async (req: Request, res: Response) => {
   try {
     const { host, port = 161, version = 'v2c', community = 'public' } = req.body;
+    
+    if (!isValidSnmpHost(host)) {
+      return res.status(400).json({ code: -1, message: 'Invalid host address' });
+    }
+    
     const ifs = await snmpService.getInterfaces(host, port, version as SnmpVersion, community);
     res.json({ code: 0, data: ifs });
   } catch (error: any) {
@@ -298,12 +399,18 @@ router.post('/traps/test', (_req: Request, res: Response) => {
   try {
     const id = randomUUID();
     const now = new Date().toISOString();
-    const varbinds = JSON.stringify([
+    const testVarbinds = [
       { oid: '1.3.6.1.2.1.1.5.0', value: 'iKuai', type: 4 },
       { oid: '1.3.6.1.2.1.1.3.0', value: (Math.floor(Date.now() / 10) % 1000000).toString(), type: 67 },
       { oid: '1.3.6.1.4.1.9.9.43.1.1.1.0', value: 'linkDown', type: 4 },
       { oid: '1.3.6.1.6.3.1.1.4.1.0', value: '1.3.6.1.6.3.1.1.5.3', type: 6 },  // ifDown
-    ]);
+    ];
+    // SEC-042: Validate trap varbind data
+    const validationError = validateTrapVarbinds(testVarbinds);
+    if (validationError) {
+      return res.status(400).json({ code: -1, message: validationError });
+    }
+    const varbinds = JSON.stringify(testVarbinds);
     db.prepare(`
       INSERT INTO snmp_trap_events (id, source_ip, trap_type, enterprise_oid, agent_address, generic_type, specific_type, varbinds_json, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

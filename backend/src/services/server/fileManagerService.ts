@@ -3,10 +3,24 @@ import { SFTPWrapper } from 'ssh2';
 import { terminalService } from './terminalService';
 import type { FileItem, FileInfo, FileManagerConfig } from '../../types/fileManager';
 
+// SEC-036: Extended default blocked paths for file manager security
 const DEFAULT_CONFIG: FileManagerConfig = {
   maxFileSize: 10 * 1024 * 1024,
   allowedExtensions: [],
-  blockedPaths: ['/etc/shadow', '/etc/passwd', '/root/.ssh'],
+  blockedPaths: [
+    '/etc/shadow', '/etc/passwd', '/etc/sudoers', '/etc/sudoers.d',
+    '/etc/gshadow', '/etc/group',
+    '/root/.ssh', '/home',  // blocks all home directories
+    '/etc/ssh', '/etc/ssh/ssh_host_*',
+    '/var/log/auth.log', '/var/log/secure',
+    '/proc', '/sys', '/dev',
+    '/dev/mem', '/dev/kmem', '/dev/shm',
+    '/run/secrets', '/var/run/secrets',
+    '/etc/ssl/private', '/etc/pki/tls/private',
+    '/var/lib/docker', '/etc/docker',
+    '/etc/kubernetes', '/var/lib/kubelet',
+    '/var/spool/cron', '/etc/crontab', '/etc/cron.d',
+  ],
   operations: {
     create: true,
     read: true,
