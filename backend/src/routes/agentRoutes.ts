@@ -3,9 +3,108 @@ import { randomUUID } from 'crypto';
 import db from '../models/database';
 import { executeAgentWithLLM } from '@services/ai';
 import { executeAgentNode } from '@services/agent';
+import { agentRegistry } from '@services/agent';
+import { createAuditLog } from '@services/audit';
 import { requireRole } from '../middleware/auth';
 
 const router = Router();
+
+// ============================================================
+// Agent Provider 契约端点（动态插拔）
+// ============================================================
+
+/** 列出已注册的 Provider（含健康状态、熔断状态与降级链） */
+router.get('/providers', async (_req: Request, res: Response) => {
+  try {
+    const providers = await Promise.all(agentRegistry.list().map((provider) => agentRegistry.describe(provider)));
+    res.json({
+      success: true,
+      data: {
+        defaultProvider: agentRegistry.getDefaultId(),
+        fallbackChain: agentRegistry.getFallbackChain(),
+        providers,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : '获取 Provider 失败' });
+  }
+});
+
+/** 设置降级链（数组顺序即优先级；空数组表示回到默认：默认 Provider + 注册顺序） */
+router.post('/providers/chain', requireRole('admin'), (req: Request, res: Response) => {
+  const chain = req.body?.chain;
+  if (!Array.isArray(chain)) {
+    return res.status(400).json({ success: false, error: '缺少 chain 数组（Provider id 列表）' });
+  }
+  try {
+    const applied = agentRegistry.setFallbackChain(chain.map(String));
+    createAuditLog({
+      action: 'agent_provider_chain',
+      resource_type: 'agent_provider',
+      resource_id: 'chain',
+      details: { chain: applied },
+      ip_address: req.ip,
+    });
+    res.json({ success: true, data: { fallbackChain: applied } });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error instanceof Error ? error.message : '设置失败' });
+  }
+});
+
+/** 设置默认 Provider */
+router.post('/providers/default', requireRole('admin'), (req: Request, res: Response) => {
+  const id = String(req.body?.id || '').trim();
+  try {
+    agentRegistry.setDefault(id);
+    createAuditLog({
+      action: 'agent_provider_default',
+      resource_type: 'agent_provider',
+      resource_id: id,
+      details: { id },
+      ip_address: req.ip,
+    });
+    res.json({ success: true, data: { defaultProvider: agentRegistry.getDefaultId() } });
+  } catch (error) {
+    res.status(404).json({ success: false, error: error instanceof Error ? error.message : '设置失败' });
+  }
+});
+
+/** 注销 Provider（动态卸载） */
+router.delete('/providers/:id', requireRole('admin'), (req: Request, res: Response) => {
+  const removed = agentRegistry.unregister(req.params.id);
+  createAuditLog({
+    action: 'agent_provider_unregister',
+    resource_type: 'agent_provider',
+    resource_id: req.params.id,
+    details: { removed },
+    ip_address: req.ip,
+  });
+  res.json({ success: true, data: { removed } });
+});
+
+/** 统一调用入口：按契约执行一轮对话（provider 可选，缺省用默认 Provider） */
+router.post('/providers/chat', async (req: Request, res: Response) => {
+  const message = String(req.body?.message || '').trim();
+  if (!message) {
+    return res.status(400).json({ success: false, error: '缺少 message' });
+  }
+  try {
+    const result = await agentRegistry.chat(
+      {
+        sessionKey: String(req.body?.sessionKey || `api-${randomUUID()}`),
+        message,
+        agentId: req.body?.agentId,
+        model: req.body?.model,
+        thinking: Boolean(req.body?.thinking),
+        metadata: { source: 'api' },
+      },
+      req.body?.provider
+    );
+    res.json({ success: result.success, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : '执行失败' });
+  }
+});
 
 router.get('/', (req: Request, res: Response) => {
   try {

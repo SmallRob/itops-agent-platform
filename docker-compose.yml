@@ -48,9 +48,21 @@ services:
       - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-}
       - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:80,http://localhost:3000,http://localhost:8080,http://itops-frontend,http://frontend}
+      # Docker 资源管理（镜像/容器/卷/网络）
+      - DOCKER_ENABLED=${DOCKER_ENABLED:-true}
+      - DOCKER_SOCKET_PATH=${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+      # Skills 插件目录（挂载宿主机目录即可动态插拔，无需重建镜像）
+      - SKILLS_DIR=${SKILLS_DIR:-/app/skills}
+      # Hook 入站令牌（外部事件源调用 /api/hooks/* 时携带）
+      - HOOKS_TOKEN=${HOOKS_TOKEN:-}
     volumes:
       - app-data:/app/data
       - app-backups:/app/backups
+      # 本机 Docker Engine（只读接口；写操作在 API 层受控）
+      # 注意：容器内以非 root 运行，entrypoint 会自动把 appuser 加入 socket 所属组
+      - ${DOCKER_SOCKET_HOST_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      # Skills 插件目录（外部挂载，支持不重建镜像的动态插拔）
+      - ./skills:/app/skills
     # Resource limits
     deploy:
       resources:

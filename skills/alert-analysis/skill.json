@@ -1,0 +1,55 @@
+{
+  "name": "alert-analysis",
+  "description": "告警分析与根因定位：查询活跃告警、触发 AI 根因分析、查看修复策略与自动修复执行结果",
+  "version": "1.0.0",
+  "tags": ["告警", "根因", "rca", "自动修复", "降噪"],
+  "triggers": ["告警", "根因", "rca", "为什么报警", "自动修复", "故障分析"],
+  "enabled": true,
+  "tools": [
+    {
+      "name": "alert.list",
+      "description": "查询告警列表（可按状态/级别过滤）",
+      "kind": "ai",
+      "endpoint": "/api/alerts",
+      "httpMethod": "GET",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "severity": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "alert.root-cause",
+      "description": "对指定告警触发 AI 根因分析（RCA）",
+      "kind": "ai",
+      "endpoint": "/api/root-cause-analysis/analyze",
+      "httpMethod": "POST",
+      "inputSchema": {
+        "type": "object",
+        "required": ["alertId"],
+        "properties": { "alertId": { "type": "string" } }
+      }
+    },
+    {
+      "name": "alert.remediation.executions",
+      "description": "查询自动修复执行记录",
+      "kind": "ai",
+      "endpoint": "/api/remediation-executions",
+      "httpMethod": "GET"
+    },
+    {
+      "name": "knowledge.search",
+      "description": "在知识库中检索运维知识（增强 RAG）",
+      "kind": "ai",
+      "endpoint": "/api/knowledge/search",
+      "httpMethod": "POST",
+      "inputSchema": {
+        "type": "object",
+        "required": ["query"],
+        "properties": { "query": { "type": "string" }, "limit": { "type": "number" } }
+      }
+    }
+  ]
+}

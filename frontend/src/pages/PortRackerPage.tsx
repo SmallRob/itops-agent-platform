@@ -30,9 +30,21 @@ interface ServiceInfo {
   ports: PortInfo[];
 }
 
+/** 单台服务器的聚合端口结果（GET /api/port-racker/all-ports） */
+interface ServerPortsGroup {
+  id: string;
+  server: string;
+  url: string;
+  ok: boolean;
+  error: string | null;
+  portCount: number;
+  data: PortInfo[];
+}
+
 export default function PortRackerPage() {
   const { theme } = useTheme();
   const [view, setView] = useState<'ports' | 'services'>('ports');
+  const [selectedServer, setSelectedServer] = useState<string>('all');
 
   const { data: healthData, refetch: refetchHealth } = useQuery({
     queryKey: ['portracker-health'],
@@ -43,13 +55,14 @@ export default function PortRackerPage() {
     refetchInterval: 30000,
   });
 
-  const { data: portsData, isLoading: portsLoading, error: portsError, refetch: refetchPorts } = useQuery({
-    queryKey: ['portracker-ports'],
+  // 各服务器端口聚合（本机 + 其它已接入的 Portracker 实例）
+  const { data: serverGroups = [], isLoading: portsLoading, error: portsError, refetch: refetchPorts } = useQuery<ServerPortsGroup[]>({
+    queryKey: ['portracker-all-ports'],
     queryFn: async () => {
-      const res = await api.get('/api/port-racker/ports');
-      return res.data.data;
+      const res = await api.get('/api/port-racker/all-ports');
+      return res.data.data || [];
     },
-    refetchInterval: 15000,
+    refetchInterval: 20000,
     retry: 1,
   });
 
@@ -105,7 +118,13 @@ export default function PortRackerPage() {
     }
   };
 
-  const ports: PortInfo[] = Array.isArray(portsData) ? portsData : portsData?.ports || [];
+  // 服务器筛选：'all' 或具体服务器 id
+  const selectedGroup = selectedServer === 'all' ? null : serverGroups.find((group) => group.id === selectedServer) || null;
+  const visibleGroups = selectedServer === 'all' ? serverGroups : serverGroups.filter((group) => group.id === selectedServer);
+  const totalPortCount = serverGroups.reduce((sum, group) => sum + (group.ok ? group.portCount : 0), 0);
+  const ports: Array<PortInfo & { server: string }> = visibleGroups.flatMap((group) =>
+    group.ok ? group.data.map((port) => ({ ...port, server: group.server })) : []
+  );
   const services: ServiceInfo[] = Array.isArray(servicesData) ? servicesData : servicesData?.services || [];
 
   return (
@@ -238,10 +257,61 @@ export default function PortRackerPage() {
           </div>
         ) : view === 'ports' ? (
           /* Ports table view */
-          <div className={clsx(
-            'rounded-xl border overflow-hidden',
-            theme === 'dark' ? 'bg-slate-800/30 border-slate-700/50' : 'bg-white border-gray-200'
-          )}>
+          <div className="space-y-4">
+            {/* 服务器切换 */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <button
+                onClick={() => setSelectedServer('all')}
+                className={clsx(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors',
+                  selectedServer === 'all'
+                    ? 'bg-blue-600 text-white shadow'
+                    : theme === 'dark' ? 'bg-slate-800/60 text-slate-300 hover:bg-slate-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                )}
+              >
+                <ServerIcon className="w-3.5 h-3.5" />
+                全部服务器 ({totalPortCount})
+              </button>
+              {serverGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => setSelectedServer(group.id)}
+                  title={group.ok ? group.url : group.error || '获取失败'}
+                  className={clsx(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors',
+                    selectedServer === group.id
+                      ? 'bg-blue-600 text-white shadow'
+                      : theme === 'dark' ? 'bg-slate-800/60 text-slate-300 hover:bg-slate-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                >
+                  <span className={clsx('w-2 h-2 rounded-full', group.ok ? 'bg-green-500' : 'bg-red-500')} />
+                  {group.server}
+                  <span className={clsx('font-mono', selectedServer === group.id ? 'text-white/80' : theme === 'dark' ? 'text-slate-500' : 'text-gray-400')}>
+                    {group.ok ? group.portCount : '—'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* 选中服务器取数异常提示 */}
+            {selectedGroup && !selectedGroup.ok && (
+              <div className={clsx(
+                'flex items-start gap-3 p-4 rounded-xl border text-sm',
+                theme === 'dark' ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
+              )}>
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">{selectedGroup.server} 数据获取失败</p>
+                  <p className="mt-0.5 text-xs opacity-90">{selectedGroup.error || '未知错误'}</p>
+                  {selectedGroup.url && <p className="mt-1 text-xs font-mono opacity-70">{selectedGroup.url}</p>}
+                </div>
+              </div>
+            )}
+
+            <div className={clsx(
+              'rounded-xl border overflow-hidden',
+              theme === 'dark' ? 'bg-slate-800/30 border-slate-700/50' : 'bg-white border-gray-200'
+            )}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -251,6 +321,7 @@ export default function PortRackerPage() {
                   )}>
                     <th className="px-4 py-3 text-left font-medium">端口</th>
                     <th className="px-4 py-3 text-left font-medium">协议</th>
+                    {selectedServer === 'all' && <th className="px-4 py-3 text-left font-medium">服务器</th>}
                     <th className="px-4 py-3 text-left font-medium">服务</th>
                     <th className="px-4 py-3 text-left font-medium">状态</th>
                     <th className="px-4 py-3 text-left font-medium">进程</th>
@@ -261,7 +332,7 @@ export default function PortRackerPage() {
                 <tbody>
                   {ports.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center">
+                      <td colSpan={selectedServer === 'all' ? 8 : 7} className="px-4 py-12 text-center">
                         <div className="flex flex-col items-center gap-2">
                           {isLoading ? (
                             <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
@@ -294,6 +365,11 @@ export default function PortRackerPage() {
                             theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'
                           )}>{p.protocol || 'tcp'}</span>
                         </td>
+                        {selectedServer === 'all' && (
+                          <td className={clsx('px-4 py-2.5 text-xs', theme === 'dark' ? 'text-slate-400' : 'text-gray-500')}>
+                            {p.server}
+                          </td>
+                        )}
                         <td className={clsx('px-4 py-2.5', theme === 'dark' ? 'text-slate-300' : 'text-gray-700')}>
                           {p.service || '-'}
                         </td>
@@ -329,6 +405,7 @@ export default function PortRackerPage() {
                 共 {ports.length} 个端口
               </div>
             )}
+            </div>
           </div>
         ) : (
           /* Services grouped view */

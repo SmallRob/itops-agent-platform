@@ -18,6 +18,7 @@ services:
     container_name: itops-dev-backend
     networks:
       - itops-dev-network
+      - tcb-front-nginx-network
     ports:
       - "3001:3001"          # API端口
       - "9229:9229"          # Node.js 调试端口
@@ -35,19 +36,28 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost:3000
       - LOG_LEVEL=debug
+      # Docker 资源管理（镜像/容器/卷/网络）
+      - DOCKER_ENABLED=true
+      - DOCKER_SOCKET_PATH=/var/run/docker.sock
+      # Skills 插件目录（动态插拔：目录增删后 /api/skills/reload 或自动重载生效）
+      - SKILLS_DIR=/app/skills
+      # Hook 入站令牌（外部事件源调用 /api/hooks/* 时携带）
+      - HOOKS_TOKEN=${HOOKS_TOKEN:-}
     volumes:
       - dev-data:/app/data                          # 数据库持久化
       - dev-backups:/app/backups                    # 备份文件持久化
       - ../backend/src:/app/src                     # 挂载源码用于热重载
       - ../backend/package.json:/app/package.json
       - ../backend/tsconfig.json:/app/tsconfig.json
+      - /var/run/docker.sock:/var/run/docker.sock   # Docker 资源管理（本机 Engine，只读接口见 dockerRoutes）
+      - ../skills:/app/skills                       # Skills 插件目录（动态插拔）
     deploy:
       resources:
         limits:
-          cpus: '4.0'
-          memory: 4G
+          cpus: '1.5'
+          memory: 3G
         reservations:
-          cpus: '1.0'
+          cpus: '0.5'
           memory: 1G
     restart: unless-stopped
     healthcheck:
@@ -69,6 +79,7 @@ services:
     container_name: itops-dev-frontend
     networks:
       - itops-dev-network
+      - tcb-front-nginx-network
     ports:
       - "5173:3000"            # Vite dev server (内部端口3000 -> 外部5173)
     environment:
@@ -90,10 +101,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '1.0'
           memory: 2G
         reservations:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: 512M
     restart: unless-stopped
     logging:
@@ -105,6 +116,8 @@ services:
 networks:
   itops-dev-network:
     driver: bridge
+  tcb-front-nginx-network:
+    external: true
 
 volumes:
   dev-data:

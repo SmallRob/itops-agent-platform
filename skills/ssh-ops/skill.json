@@ -1,0 +1,48 @@
+{
+  "name": "ssh-ops",
+  "description": "通过 SSH 在已接入的 Linux 服务器上执行只读巡检命令、查看文件与进程状态，用于主机排障与远程运维",
+  "version": "1.0.0",
+  "tags": ["ssh", "主机", "服务器", "远程执行", "巡检", "排障"],
+  "triggers": ["ssh", "远程执行", "登录服务器", "查看进程", "磁盘", "内存", "主机巡检"],
+  "enabled": true,
+  "tools": [
+    {
+      "name": "servers.list",
+      "description": "列出平台已接入的服务器（含 IP、系统、状态）",
+      "kind": "http",
+      "endpoint": "/api/servers",
+      "httpMethod": "GET",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "ssh.exec",
+      "description": "在指定服务器上执行命令（受平台命令安全策略约束：只读命令可直接执行，写操作需管理员）",
+      "kind": "ssh",
+      "endpoint": "/api/server-commands/{serverId}/exec",
+      "httpMethod": "POST",
+      "requiresAdmin": true,
+      "write": true,
+      "inputSchema": {
+        "type": "object",
+        "required": ["serverId", "command"],
+        "properties": {
+          "serverId": { "type": "string", "description": "服务器 ID" },
+          "command": { "type": "string", "description": "要执行的命令" },
+          "timeout": { "type": "number", "description": "超时毫秒数，默认 30000" }
+        }
+      }
+    },
+    {
+      "name": "servers.test-connection",
+      "description": "测试与目标服务器的 SSH 连通性",
+      "kind": "ssh",
+      "endpoint": "/api/server-commands/{serverId}/test",
+      "httpMethod": "POST",
+      "inputSchema": {
+        "type": "object",
+        "required": ["serverId"],
+        "properties": { "serverId": { "type": "string" } }
+      }
+    }
+  ]
+}

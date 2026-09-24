@@ -1,0 +1,98 @@
+{
+  "name": "docker-ops",
+  "description": "多主机 Docker 运维：查看与操作容器、镜像（支持本机与全部已接入 Linux 服务器）",
+  "version": "1.0.0",
+  "tags": ["docker", "容器", "镜像", "运维", "多主机"],
+  "triggers": ["docker", "容器", "镜像", "部署", "重启容器", "拉取镜像"],
+  "enabled": true,
+  "tools": [
+    {
+      "name": "docker.hosts.list",
+      "description": "列出可用于 Docker 管理的主机（本机 + 已接入 Linux 服务器）及 Docker 可用性",
+      "kind": "docker",
+      "endpoint": "/api/docker/hosts",
+      "httpMethod": "GET"
+    },
+    {
+      "name": "docker.containers.list",
+      "description": "列出指定主机上的容器（server 缺省为本机）",
+      "kind": "docker",
+      "endpoint": "/api/docker/containers",
+      "httpMethod": "GET",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "server": { "type": "string", "description": "主机 id，local 表示本机" } }
+      }
+    },
+    {
+      "name": "docker.images.list",
+      "description": "列出指定主机上的镜像",
+      "kind": "docker",
+      "endpoint": "/api/docker/images",
+      "httpMethod": "GET",
+      "inputSchema": { "type": "object", "properties": { "server": { "type": "string" } } }
+    },
+    {
+      "name": "docker.container.logs",
+      "description": "查看容器日志（尾部 N 行）",
+      "kind": "docker",
+      "endpoint": "/api/docker/containers/{id}/logs",
+      "httpMethod": "GET",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "tail": { "type": "number" },
+          "server": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "docker.container.action",
+      "description": "启动/停止/重启容器（管理员；受保护名单容器禁止操作）",
+      "kind": "docker",
+      "endpoint": "/api/docker/containers/{id}/{action}",
+      "httpMethod": "POST",
+      "requiresAdmin": true,
+      "write": true,
+      "inputSchema": {
+        "type": "object",
+        "required": ["id", "action"],
+        "properties": {
+          "id": { "type": "string" },
+          "action": { "type": "string", "enum": ["start", "stop", "restart"] },
+          "server": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "docker.image.pull",
+      "description": "在指定主机拉取镜像（管理员）",
+      "kind": "docker",
+      "endpoint": "/api/docker/images/pull",
+      "httpMethod": "POST",
+      "requiresAdmin": true,
+      "write": true,
+      "inputSchema": {
+        "type": "object",
+        "required": ["ref"],
+        "properties": { "ref": { "type": "string" }, "server": { "type": "string" } }
+      }
+    },
+    {
+      "name": "docker.image.remove",
+      "description": "在指定主机删除镜像（管理员）",
+      "kind": "docker",
+      "endpoint": "/api/docker/images/{id}",
+      "httpMethod": "DELETE",
+      "requiresAdmin": true,
+      "write": true,
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "properties": { "id": { "type": "string" }, "server": { "type": "string" } }
+      }
+    }
+  ]
+}

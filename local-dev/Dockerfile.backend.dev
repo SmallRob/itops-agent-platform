@@ -2,7 +2,11 @@
 # 用于本地开发环境，支持热重载
 FROM node:20-slim
 
+ENV NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
 WORKDIR /app
+
+# 使用阿里云 Debian 镜像源加速 apt（国内网络环境）
+RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g; s|http://security.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
 
 # Install build dependencies for native modules (better-sqlite3)
 RUN apt-get update && apt-get install -y --no-install-recommends \

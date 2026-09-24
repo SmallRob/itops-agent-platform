@@ -27,6 +27,15 @@ ITOps Agent Platform 所有技术文档集合。
 - [工作流指南](./WORKFLOW_GUIDE.md) — 工作流编排使用指南
 - [自动修复设计](./AUTO_REMEDIATION_DESIGN.md) — 告警自动修复功能设计说明
 
+### 🧩 平台能力文档（Agent / Skills / Hooks）
+
+- [平台能力文档索引](./platform/README.md) — 可扩展内核文档集（统一「快速开始 → 原理 → 配置 → 扩展 → 排障」结构）
+- [架构（Agent/Skills/Hooks）](./platform/architecture.md) — 分层架构、三条典型链路、扩展点
+- [Skills 技能插件](./platform/skills.md) — 技能契约、目录结构、zip 包规范、开发指南
+- [Hooks 事件入站](./platform/hooks.md) — 三端点、六来源映射、认证与 curl 示例
+- [配置体系](./platform/configuration.md) — 环境变量 / settings 表 / 默认值三层模型
+- [环境变量清单](./platform/environment-variables.md) — 全量环境变量分组说明
+
 ### 👩‍💻 开发文档
 
 - [开发指南](./DEVELOPMENT.md) — 本地开发环境搭建（含 Docker 热重载）、开发流程、调试技巧
@@ -52,6 +61,7 @@ ITOps Agent Platform 所有技术文档集合。
 | **新用户** | [项目总览](../README.md) → [快速部署指南](./QUICK_DEPLOY.md) → [测试指南](./TEST_GUIDE.md) |
 | **部署/运维** | [部署操作手册](./DEPLOYMENT.md) → [生产环境最佳实践](./PRODUCTION.md) → [Docker 镜像构建](../docker/README.md) |
 | **开发人员** | [开发指南](./DEVELOPMENT.md) → [架构设计](./ARCHITECTURE.md) → [API 文档](./API.md) |
+| **集成/扩展开发** | [平台能力文档](./platform/README.md) → [Skills 技能插件](./platform/skills.md) → [Hooks 事件入站](./platform/hooks.md) |
 | **架构师** | [架构设计](./ARCHITECTURE.md) → [架构决策记录](./arch/) → [技术实现细节](./TECHNICAL_IMPLEMENTATION.md) |
 
 ---

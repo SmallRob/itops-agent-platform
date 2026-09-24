@@ -11,13 +11,11 @@
 
 import db from '@models/database';
 import { logger } from '@utils/logger';
-// 使用简单的 UUID 生成替代 crypto
+import { randomUUID } from 'crypto';
+
+/** 生成 UUID（使用 Node 原生 crypto，避免 Math.random 的碰撞风险） */
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return randomUUID();
 }
 import { getApiKey, getModelId, getApiBase, buildApiEndpoint } from '@utils/apiConfig';
 import { qanythingService } from '@services/knowledge/qanythingService';

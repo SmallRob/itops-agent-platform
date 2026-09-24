@@ -64,6 +64,15 @@
 - **根因分析 (RCA)** -- AI 驱动的告警根因分析，展示完整推理链
 - **主备模型降级** -- 主备模型降级链，每个 Provider 独立熔断器，拖拽排序优先级
 
+### :jigsaw: 平台扩展能力（Agent / Skills / Hooks）
+
+- **技能插件（Skills）** -- 技能 = 目录 + `SKILL.md` + `skill.json`，声明式描述能力与工具契约；目录增删即插即用，支持 zip 包安装/卸载、运行时启停、按意图自动匹配装载（内置 4 个技能包 / 18 个工具）
+- **Agent Provider 契约** -- Agent 执行抽象为可注册/注销的 Provider（本地内建 LLM / 外部 agent-service），支持降级链与健康熔断（连续失败阈值 → 熔断 → 冷却后探测恢复），每次调用的尝试链可回溯
+- **Hooks 事件接入** -- `/api/hooks/*` 统一机器入口：异构告警（Prometheus/Zabbix/Grafana/阿里云/腾讯云/通用自动识别）标准化后进入既有处置流水线，另提供 Agent 隔离回合与事件唤醒
+- **能力中心（可视化）** -- 左侧导航「AI 运维 → 能力中心」（`/platform`）：技能管理、Provider 治理与降级链编排、Hooks 接入指引
+
+> 详见 [平台能力文档](./docs/platform/README.md)
+
 ### :lock: 安全与合规
 
 - **命令安全策略** -- 5 级分类、读写分离、路径沙箱，防止危险命令执行
@@ -294,7 +303,9 @@ itops-agent-platform/
 | **用户管理** | `/api/users` | 用户 CRUD、角色管理 (admin/operator/viewer) |
 | **服务器管理** | `/api/servers` | 服务器 CRUD、SSH 连接测试、主机信息采集 |
 | **Web 终端** | `/api/terminal/*` | WebSocket SSH 终端会话管理 |
-| **Agent 系统** | `/api/agents` | Agent CRUD、执行、历史记录 |
+| **Agent 系统** | `/api/agents` | Agent CRUD、执行、历史记录、**Provider 契约与降级链** |
+| **技能插件** | `/api/skills` | 技能清单/详情、启停、重载、意图匹配、**zip 安装与卸载** |
+| **事件接入** | `/api/hooks/*` | 异构告警标准化入站、Agent 隔离回合、事件唤醒 |
 | **工作流** | `/api/workflows` | 工作流 CRUD、执行、拓扑排序、模板 |
 | **任务执行** | `/api/tasks` | 任务状态查询、进度追踪、暂停/取消 |
 | **告警中心** | `/api/alerts` | 告警 CRUD、Webhook 接收、降噪、关联 |

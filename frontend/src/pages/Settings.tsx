@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, Sun, Moon, Lock, BookOpen, Upload, FileText, Globe, Wifi, Brain, Eye, EyeOff, Plug, Radio, Container, FolderCog } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../hooks/useTheme';
-import api from '../lib/api';
+import api, { formDataRequestConfig } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { validatePassword, getPasswordStrength } from '../utils/passwordValidator';
 import AIModels from './AIModels';
@@ -84,9 +84,7 @@ export default function Settings() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('backup', file);
-      const res = await api.post('/api/backups/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/api/backups/upload', formData, { ...formDataRequestConfig });
       return res.data;
     },
     onSuccess: () => {
@@ -234,9 +232,7 @@ export default function Settings() {
       files.forEach((file) => {
         formData.append('files', file);
       });
-      const res = await api.post('/api/knowledge/qanything/upload-batch', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/api/knowledge/qanything/upload-batch', formData, { ...formDataRequestConfig });
       return res.data;
     },
     onMutate: () => {

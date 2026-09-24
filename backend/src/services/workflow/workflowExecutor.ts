@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import db, { getIOInstance } from '@models/database';
 import { logger } from '@utils/logger';
-import { executeAgentNode, getThinkingSteps } from '@services/agent/agentExecutor';
+import { executeAgentNode, executeAgentNodeWithSkills } from '@services/agent/agentExecutor';
 import { reportService } from '@services/report/reportService';
 import { notificationService } from '@services/notification/notificationService';
 import { createAuditLog } from '@services/audit/auditService';
@@ -259,16 +259,14 @@ async function executeFromIndex(
         error: undefined
       });
 
-      const thinkingProcess = getThinkingSteps(node.data.label);
-      for (const step of thinkingProcess) {
-        await delay(300);
-        io?.to(`task:${taskId}`).emit('task:node:thinking', {
-          taskId,
-          nodeId,
-          content: step
-        });
-        addTaskLog(taskId, { type: 'thinking', content: step, nodeId });
-      }
+      // 真实进度反馈：不再输出预设的「思考话术」，只上报当前实际动作
+      const progressMessage = `正在调用 Agent「${node.data.label}」...`;
+      io?.to(`task:${taskId}`).emit('task:node:thinking', {
+        taskId,
+        nodeId,
+        content: progressMessage
+      });
+      addTaskLog(taskId, { type: 'thinking', content: progressMessage, nodeId });
 
       logger.info(`🤖 Calling executeAgentNode with agentId: ${node.data.agentId} context:`, executionContext.variables);
       
@@ -276,14 +274,23 @@ async function executeFromIndex(
         throw new Error(`Node ${nodeId} is missing agentId`);
       }
       
-      const output = await executeAgentNode(node.data.agentId, input, executionContext.variables);
+      const execution = await executeAgentNodeWithSkills(node.data.agentId, input, executionContext.variables);
+      const output = execution.output;
+      const matchedSkills = execution.skills;
+
+      // 技能装载可见化：命中技能作为独立事件与日志上报（技能注册表动态匹配）
+      if (matchedSkills.length > 0) {
+        const skillMessage = `装载技能：${matchedSkills.map((skill) => `${skill.name}（${skill.reason}）`).join('；')}`;
+        io?.to(`task:${taskId}`).emit('task:node:skills', { taskId, nodeId, skills: matchedSkills });
+        addTaskLog(taskId, { type: 'thinking', content: skillMessage, nodeId });
+      }
 
       nodeResults[nodeId] = {
         status: 'success',
         output,
         metadata: {
-          thinkingProcess: thinkingProcess.join('\n'),
-          executionTime: Date.now()
+          executionTime: Date.now(),
+          skills: matchedSkills
         }
       };
 

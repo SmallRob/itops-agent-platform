@@ -63,6 +63,8 @@ export interface NodeResult {
   metadata?: {
     thinkingProcess?: string;
     executionTime?: number;
+    /** 本节点自动装载的技能（Skills 动态插拔：注册表按输入意图匹配） */
+    skills?: Array<{ slug: string; name: string; score: number; reason: string; tools: string[] }>;
   };
 }
 

@@ -4,17 +4,25 @@ import { executeAgentWithLLM } from '@services/ai/llmService';
 import { executeCommand, runComplianceCheck } from '@services/server/sshService';
 import { AGENT_NAMES } from '../../constants/agentNames';
 import { decrypt } from '@services/security/encryptionService';
+import { skillRegistry } from '@services/skills';
 import {
   executeDbskiter,
   inferDatabaseOperation,
   formatResultToMarkdown,
 } from '@services/database/dbskiterService';
 import type { Agent, Server } from '../../types';
+import type { SkillMatch } from '@services/skills';
 
 const AGENT_EXECUTION_TIMEOUT = 300000; // 5 分钟
 
 type AgentRow = Pick<Agent, 'id' | 'name'> & { system_prompt: string };
 type ServerRow = Pick<Server, 'id' | 'name' | 'hostname'>;
+
+/** Agent 节点执行结果（含自动装载的技能，供工作流透传给前端/审计） */
+export interface AgentNodeExecution {
+  output: string;
+  skills: SkillMatch[];
+}
 
 function getAgent(agentId: string): AgentRow | undefined {
   return db.prepare(
@@ -28,10 +36,62 @@ function getEnabledServers(): ServerRow[] {
   ).all() as ServerRow[];
 }
 
+/**
+ * 执行 Agent 节点（返回输出与命中技能）
+ * 技能装载：由技能注册表按输入做意图匹配，LLM 类 Agent 会把技能与工具契约注入提示词。
+ */
+export async function executeAgentNodeWithSkills(
+  agentId: string,
+  input: string,
+  context?: Record<string, unknown>
+): Promise<AgentNodeExecution> {
+  const skills = matchSkills(input);
+  if (skills.length > 0) {
+    logger.info(`[skills] Agent 节点命中技能：${skills.map((skill) => skill.slug).join(', ')}`);
+  }
+  const output = await runAgentNode(agentId, input, context, skills);
+  return { output, skills };
+}
+
 export async function executeAgentNode(
   agentId: string,
   input: string,
   context?: Record<string, unknown>
+): Promise<string> {
+  const { output } = await executeAgentNodeWithSkills(agentId, input, context);
+  return output;
+}
+
+/** 意图匹配（技能注册表不可用时降级为空，不影响 Agent 执行） */
+function matchSkills(input: string): SkillMatch[] {
+  try {
+    return skillRegistry.match(input, 3);
+  } catch (error) {
+    logger.warn(`[skills] 技能匹配失败（忽略）：${error instanceof Error ? error.message : error}`);
+    return [];
+  }
+}
+
+/** 把命中技能与工具契约拼进提示词，让 LLM 知道可调用哪些平台能力 */
+function buildSkillPrompt(skills: SkillMatch[], input: string): string {
+  if (skills.length === 0) return input;
+  const lines = skills.map((skill) => {
+    const tools = skill.tools.slice(0, 6).join('、') || '（无声明工具）';
+    return `- ${skill.name}（${skill.slug}）：${skill.reason || '描述相关'}；可用工具：${tools}`;
+  });
+  return [
+    '【技能上下文】平台按意图匹配到以下技能，其工具由平台执行（需要时请在方案中说明要调用的工具与参数）：',
+    ...lines,
+    '',
+    `用户请求：${input}`,
+  ].join('\n');
+}
+
+async function runAgentNode(
+  agentId: string,
+  input: string,
+  context: Record<string, unknown> | undefined,
+  skills: SkillMatch[]
 ): Promise<string> {
   logger.info(`🔍 executeAgentNode called with agentId: ${agentId} input: ${input?.substring(0, 100)}`);
   
@@ -58,7 +118,7 @@ export async function executeAgentNode(
   // 其他 Agent - 调用真实 LLM，增加超时保护
   logger.info(`🤖 Calling LLM for agent ${agentName}`);
   return await Promise.race([
-    executeAgentWithLLM(agentId, input),
+    executeAgentWithLLM(agentId, buildSkillPrompt(skills, input)),
     new Promise<string>((_, reject) =>
       setTimeout(() => reject(new Error(`Agent 执行超时（${AGENT_EXECUTION_TIMEOUT / 1000}s）`)), AGENT_EXECUTION_TIMEOUT)
     )
@@ -341,69 +401,4 @@ async function inspectSingleServer(server: ServerRow): Promise<{
   return { successCount, failCount, detail };
 }
 
-export function getThinkingSteps(agentName: string): string[] {
-  const steps: Record<string, string[]> = {
-    '告警处理': [
-      '正在解析告警内容...',
-      '识别到告警关键信息：主机名、告警类型、告警值',
-      '评估告警严重程度和紧急程度',
-      '准备告警摘要供后续处理使用'
-    ],
-    '故障诊断': [
-      '分析告警模式和历史数据...',
-      '检查相关系统日志和应用日志',
-      '识别可能的故障原因',
-      '生成排查步骤清单'
-    ],
-    '日志分析': [
-      '解析日志格式和时间戳...',
-      '识别错误模式和异常事件',
-      '提取关键日志条目',
-      '生成日志分析摘要'
-    ],
-    '系统巡检': [
-      '收集系统资源使用信息...',
-      '检查服务进程运行状态',
-      '验证系统配置和安全设置',
-      '生成健康检查报告'
-    ],
-    '变更执行': [
-      '验证操作命令安全性...',
-      '准备执行环境和参数',
-      '执行系统变更操作',
-      '验证操作结果'
-    ],
-    '文档生成': [
-      '收集任务执行数据...',
-      '整理分析结果和输出',
-      '按照报告模板格式化',
-      '生成最终文档'
-    ],
-    '合规检查': [
-      '对照安全基线检查...',
-      '验证配置项合规性',
-      '识别不符合项',
-      '生成合规报告'
-    ],
-    '服务器命令执行': [
-      '连接目标服务器...',
-      '验证身份认证...',
-      '准备执行命令...',
-      '执行命令并收集输出...'
-    ],
-    '自动巡检': [
-      '连接目标服务器...',
-      '开始系统健康检查...',
-      '收集各项指标数据...',
-      '整理巡检结果...'
-    ],
-    '数据库运维': [
-      '解析数据库运维意图...',
-      '识别目标数据库和运维操作...',
-      '调用 dbskiter 执行诊断/监控/安全/锁分析...',
-      '格式化执行结果...'
-    ]
-  };
-  
-  return steps[agentName] || ['正在分析...', '正在处理...', '完成'];
-}
+

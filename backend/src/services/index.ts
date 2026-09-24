@@ -37,6 +37,9 @@ export * from './audit';
 // Backup domain
 export * from './backup';
 
+// Docker domain
+export * from './docker';
+
 // Monitor domain
 export * from './monitor';
 

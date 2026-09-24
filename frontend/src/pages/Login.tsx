@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, AlertCircle, Globe, Lock, ArrowRight } from 'lucide-react';
+import { User, AlertCircle, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 
@@ -145,19 +145,9 @@ export default function Login() {
           </div>
         </div>
 
-        {/* 底部版权和链接 - 固定在底部偏上 */}
+        {/* 底部版权 - 固定在底部偏上 */}
         <div className="py-8">
           <div className="flex items-center justify-center gap-3">
-            <a
-              href="https://www.zjzwfw.cloud/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-blue-300 hover:text-blue-200 transition-colors duration-200"
-            >
-              <Globe className="w-4 h-4" />
-              <span className="text-sm">www.zjzwfw.cloud</span>
-            </a>
-            <span className="text-slate-500 text-sm">•</span>
             <p className="text-slate-400 text-sm">
               © 2026 ITOps-Agent 自动化运维平台
             </p>

@@ -53,10 +53,14 @@ import approvalRoutes from './routes/approvalRoutes';
 import aiRemediationRoutes from './routes/aiRemediationRoutes';
 import portRackerRoutes from './routes/portRackerRoutes';
 import portainerRoutes from './routes/portainerRoutes';
+import dockerRoutes from './routes/dockerRoutes';
+import hooksRoutes from './routes/hooksRoutes';
+import skillsRoutes from './routes/skillsRoutes';
 import agentServiceRoutes from './routes/agentServiceRoutes';
 import { schedulerService } from '@services/workflow';
 import { reportService } from '@services/report';
 import { copilotService } from '@services/agent';
+import { bootstrapAgentProviders } from '@services/agent';
 import { getAgentServiceClient } from '@services/agent/agentServiceClient';
 import { rootCauseAnalysisService } from '@services/ai';
 import { notificationService } from '@services/notification';
@@ -196,8 +200,13 @@ app.get('/api/csrf-token', (req, res) => {
 app.use((req, res, next) => {
   const method = req.method.toUpperCase();
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-    // Skip CSRF for webhook endpoints and auth login
-    if (req.path.startsWith('/api/webhooks') || req.path === '/api/auth/login') {
+    // Skip CSRF for token/signature-authenticated inbound endpoints and auth login：
+    // /api/webhooks（HMAC 签名/IP 白名单）、/api/hooks（X-Hook-Token/管理员 JWT）、/api/auth/login
+    if (
+      req.path.startsWith('/api/webhooks') ||
+      req.path.startsWith('/api/hooks') ||
+      req.path === '/api/auth/login'
+    ) {
       return next();
     }
     const sessionId = req.headers['x-session-id'] as string;
@@ -286,6 +295,8 @@ async function initializeApp() {
   initAlertService();
   reportService.init();
   copilotService.init();
+  // 引导 Agent Provider 与 Skills 注册表（动态插拔的能力层）
+  bootstrapAgentProviders();
   rootCauseAnalysisService.init();
   schedulerService.init();
   notificationService.init();
@@ -335,6 +346,11 @@ vncProxyService.initialize(io);
 
 // 公开路由 - 添加速率限制但不需要认证
 app.use('/api/auth', rateLimiter, authRoutes);
+
+// ============================================================
+// Hooks（借鉴 openocta /hooks/*：外部事件源标准化入站，自带令牌校验）
+// ============================================================
+app.use('/api/hooks', rateLimiter, hooksRoutes);
 
 // Webhook 路由不需要认证（外部系统推送告警）
 app.use('/api/webhooks', webhookIpFilter, rateLimiter, webhookRoutes);
@@ -438,6 +454,8 @@ app.use('/api/approvals', rateLimiter, approvalRoutes);
 app.use('/api/ai-remediations', rateLimiter, aiRemediationRoutes);
 app.use('/api/port-racker', rateLimiter, portRackerRoutes);
 app.use('/api/portainer', rateLimiter, portainerRoutes);
+app.use('/api/docker', rateLimiter, dockerRoutes);
+app.use('/api/skills', rateLimiter, skillsRoutes);
 app.use('/api/agent-service', rateLimiter, agentServiceRoutes);
 app.use('/api', rateLimiter, alertAutoRouter);
 app.use('/api', rateLimiter, linkageRouter);

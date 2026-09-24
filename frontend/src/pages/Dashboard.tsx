@@ -195,14 +195,6 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-text-primary mb-2">仪表盘</h1>
             <p className="text-text-secondary">ITOps-Agent 自动化运维平台概览</p>
           </div>
-          <a
-            href="https://www.zjzwfw.cloud/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-medium text-sm"
-          >
-            访问官网
-          </a>
         </div>
 
         {isLoading ? (

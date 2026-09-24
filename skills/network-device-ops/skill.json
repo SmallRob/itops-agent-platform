@@ -1,0 +1,43 @@
+{
+  "name": "network-device-ops",
+  "description": "网络设备运维：设备清单、SNMP 巡检、LLDP 拓扑发现与端口状态查询",
+  "version": "1.0.0",
+  "tags": ["网络", "交换机", "路由器", "snmp", "拓扑", "巡检"],
+  "triggers": ["网络设备", "交换机", "路由器", "snmp", "拓扑", "端口状态", "网络巡检"],
+  "enabled": true,
+  "tools": [
+    {
+      "name": "network.devices.list",
+      "description": "列出已纳管的网络设备",
+      "kind": "network",
+      "endpoint": "/api/network-devices",
+      "httpMethod": "GET"
+    },
+    {
+      "name": "network.device.inspect",
+      "description": "对指定网络设备执行巡检（采集 CPU/内存/接口状态）",
+      "kind": "network",
+      "endpoint": "/api/network-devices/{id}/inspect",
+      "httpMethod": "POST",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "properties": { "id": { "type": "string" } }
+      }
+    },
+    {
+      "name": "network.topology.get",
+      "description": "获取全局拓扑（LLDP 发现结果）",
+      "kind": "network",
+      "endpoint": "/api/topology/global",
+      "httpMethod": "GET"
+    },
+    {
+      "name": "network.snmp.traps",
+      "description": "查询 SNMP Trap 记录",
+      "kind": "network",
+      "endpoint": "/api/snmp/traps",
+      "httpMethod": "GET"
+    }
+  ]
+}

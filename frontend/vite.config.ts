@@ -11,6 +11,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    host: true,
+    allowedHosts: ['localhost', '127.0.0.1', 'itops-dev-frontend', 'itops.leansoftx.com', '.leansoftx.com'],
     proxy: {
       '/api': {
         target: process.env.DOCKER_MODE ? 'http://backend:3001' : 'http://localhost:3001',

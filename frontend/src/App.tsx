@@ -26,6 +26,9 @@ const ReportCenterPage = lazy(() => import('./pages/ReportCenterPage'));
 const SystemManagementPage = lazy(() => import('./pages/SystemManagementPage'));
 const PortainerPage = lazy(() => import('./pages/PortainerPage'));
 const PortRackerPage = lazy(() => import('./pages/PortRackerPage'));
+const DockerContainersPage = lazy(() => import('./pages/DockerContainers'));
+const DockerImagesPage = lazy(() => import('./pages/DockerImages'));
+const PlatformPage = lazy(() => import('./pages/PlatformPage'));
 
 // ==================== 独立页面 ====================
 const Knowledge = lazy(() => import('./pages/Knowledge'));
@@ -70,7 +73,6 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Users = lazy(() => import('./pages/Users'));
 const Settings = lazy(() => import('./pages/Settings'));
-const FrontendTests = lazy(() => import('./pages/FrontendTests'));
 const SNMPPage = lazy(() => import('./pages/SNMP'));
 const NetworkDiscoveryPage = lazy(() => import('./pages/NetworkDiscovery'));
 const AlertCorrelationGroupsPage = lazy(() => import('./pages/AlertCorrelationGroups'));
@@ -125,6 +127,9 @@ function App() {
                     <Route path="network-mgmt" element={<SuspenseRoute><ProtectedRoute><NetworkDevicePage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="portainer" element={<SuspenseRoute><ProtectedRoute><PortainerPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="port-racker" element={<SuspenseRoute><ProtectedRoute><PortRackerPage /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="containers" element={<SuspenseRoute><ProtectedRoute><DockerContainersPage /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="images" element={<SuspenseRoute><ProtectedRoute><DockerImagesPage /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="platform" element={<SuspenseRoute><ProtectedRoute><PlatformPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="report-center" element={<SuspenseRoute><ProtectedRoute><ReportCenterPage /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="system-mgmt" element={<SuspenseRoute><ProtectedRoute><SystemManagementPage /></ProtectedRoute></SuspenseRoute>} />
 
@@ -175,7 +180,10 @@ function App() {
                     <Route path="reports" element={<SuspenseRoute><ProtectedRoute><Navigate to="/report-center" replace /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="users" element={<SuspenseRoute><ProtectedRoute><Navigate to="/system-mgmt" replace /></ProtectedRoute></SuspenseRoute>} />
                     <Route path="settings" element={<SuspenseRoute><ProtectedRoute><Navigate to="/system-mgmt#settings" replace /></ProtectedRoute></SuspenseRoute>} />
-                    <Route path="frontend-tests" element={<SuspenseRoute><ProtectedRoute><Navigate to="/system-mgmt#tests" replace /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="frontend-tests" element={<SuspenseRoute><ProtectedRoute><Navigate to="/system-mgmt" replace /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="skills" element={<SuspenseRoute><ProtectedRoute><Navigate to="/platform#skills" replace /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="providers" element={<SuspenseRoute><ProtectedRoute><Navigate to="/platform#providers" replace /></ProtectedRoute></SuspenseRoute>} />
+                    <Route path="hooks" element={<SuspenseRoute><ProtectedRoute><Navigate to="/platform#hooks" replace /></ProtectedRoute></SuspenseRoute>} />
                   </Route>
                   <Route path="*" element={<SuspenseRoute><NotFound /></SuspenseRoute>} />
                 </Routes>

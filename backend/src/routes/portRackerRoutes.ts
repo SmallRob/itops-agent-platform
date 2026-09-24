@@ -58,10 +58,11 @@ router.get('/ports', async (_req: Request, res: Response) => {
 
 router.get('/all-ports', async (_req: Request, res: Response) => {
   try {
-    const data = await portRackerService.getAllPorts();
+    // 聚合各已接入服务器（本机 + peer 直连）的端口
+    const data = await portRackerService.getAllServersPorts();
     res.json({ success: true, data });
   } catch (error: any) {
-    logger.error('PortRacker getAllPorts failed:', error.message);
+    logger.error('PortRacker getAllServersPorts failed:', error.message);
     res.status(502).json({ success: false, message: '获取端口数据失败', error: error.message });
   }
 });

@@ -23,8 +23,10 @@ import {
   LogOut,
   User as UserIcon,
   Container,
+  Boxes,
   Radio,
   Settings,
+  Puzzle,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -54,6 +56,7 @@ const navigationGroups = [
       { name: 'AI Agent', href: '/ai-agent', icon: Bot },
       { name: '执行中心', href: '/execution', icon: Zap },
       { name: '自动修复', href: '/auto-remediation', icon: Network },
+      { name: '能力中心', href: '/platform', icon: Puzzle },
     ]
   },
   {
@@ -63,8 +66,17 @@ const navigationGroups = [
     items: [
       { name: '服务器', href: '/server-mgmt', icon: Server },
       { name: '网络设备', href: '/network-mgmt', icon: Network },
-      { name: '容器管理', href: '/portainer', icon: Container },
+      { name: 'Portainer', href: '/portainer', icon: Container },
       { name: '端口监控', href: '/port-racker', icon: Radio },
+    ]
+  },
+  {
+    name: '数据纳管',
+    icon: Boxes,
+    color: 'sky',
+    items: [
+      { name: '容器管理', href: '/containers', icon: Container },
+      { name: '镜像管理', href: '/images', icon: Boxes },
     ]
   },
   {
@@ -122,11 +134,17 @@ const groupColorMap: Record<string, {
     hover: 'hover:bg-rose-800/20 hover:text-rose-300',
     hoverLight: 'hover:bg-rose-50 hover:text-rose-700',
   },
+  sky: {
+    active: 'bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-lg shadow-sky-500/25',
+    activeLight: 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-lg shadow-sky-500/25',
+    hover: 'hover:bg-sky-800/20 hover:text-sky-300',
+    hoverLight: 'hover:bg-sky-50 hover:text-sky-700',
+  },
 };
 
 export default function Layout() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(['工作台', 'AI 运维', '基础设施', '知识与运营', '系统管理'])
+    new Set(['工作台', 'AI 运维', '基础设施', '数据纳管', '知识与运营', '系统管理'])
   );
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -253,6 +271,7 @@ export default function Layout() {
                   'bg-cyan-500': group.color === 'cyan',
                   'bg-amber-500': group.color === 'amber',
                   'bg-rose-500': group.color === 'rose',
+                  'bg-sky-500': group.color === 'sky',
                 })} />
                 <group.icon className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="flex-1 text-left">{group.name}</span>
