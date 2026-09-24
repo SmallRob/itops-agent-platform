@@ -1,4 +1,5 @@
 import concurrent.futures
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -51,6 +52,7 @@ class TestLoadFromSettings:
             mock_settings.llm_model = kwargs.get("model", "test-model")
             mock_settings.llm_temperature = 0.7
             mock_settings.llm_max_tokens = 4096
+            mock_settings.llm_config_path = Path("data/llm_config.json")
             mock_settings.get_llm_config.return_value = {
                 "api_key": kwargs.get("api_key"),
                 "api_base": kwargs.get("api_base"),
@@ -170,6 +172,7 @@ class TestUpdateConfigEdgeCases:
             mock_settings.llm_model = "gpt-4o"
             mock_settings.llm_temperature = 0.7
             mock_settings.llm_max_tokens = 4096
+            mock_settings.llm_config_path = Path("data/llm_config.json")
             mock_settings.get_llm_config.return_value = {
                 "api_key": "sk-openai",
                 "api_base": "https://api.openai.com/v1",

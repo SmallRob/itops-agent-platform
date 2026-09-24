@@ -38,11 +38,15 @@ git -c user.name=ops -c user.email=ops@local commit -m "..."
                         │  /socket.io   → itops-backend:3001   （WebSocket）
                         ▼
               itops-agent-platform_itops-network
-                        ├── itops-backend   容器内 3001，宿主 19301
-                        └── itops-frontend  容器内 80，宿主 19300
+                        ├── itops-backend        容器内 3001，宿主 19301
+                        ├── itops-frontend       容器内 80，宿主 19300
+                        └── itops-agent-service  容器内 8000（仅栈内可达，不发布宿主端口）
+                                                    ↑ backend 以 AGENT_SERVICE_URL=http://agent-service:8000 直连
 ```
 
-- 两个生产容器同时加入 `itops-network`（栈内互访）与 `tcb-front-nginx-network`（供宿主 nginx 反代）。
+- 生产容器加入 `itops-network`（栈内互访）；backend/frontend 另加入 `tcb-front-nginx-network`（供宿主 nginx 反代）。
+- `itops-agent-service`（外部 Python Agent 服务）只挂 `itops-network`：不暴露宿主端口，外部只能经 backend 的 `/api/agent-service/*`（JWT 鉴权）访问。
+- LLM 配置链路：平台模型池（`ai_models` 表）= 唯一事实源 → backend 启动时同步给 agent-service → agent-service 落盘 `data/llm_config.json`（卷）抗重启。
 - nginx 配置：`/data/tcb-front-nginx/conf.d/itops.conf`，用 `resolver 127.0.0.11 valid=10s` + 变量上游，容器重建换 IP 不会 502。
 - 配置文件备份目录：`/data/itops-prod-backups/`。
 
@@ -53,8 +57,10 @@ git -c user.name=ops -c user.email=ops@local commit -m "..."
 | 依赖 | 说明 |
 |------|------|
 | **buildx 插件** | 项目 Dockerfile 依赖 BuildKit 的 `--mount=type=cache`；宿主 `docker-compose build` 若报 `BuildKit is enabled but the buildx component is missing`，需安装：`/usr/libexec/docker/cli-plugins/docker-buildx`（从 GitHub releases 取 `buildx-<tag>.linux-amd64`，国内直连超时可走 `https://ghfast.top/` 前缀） |
-| **PyPI 可达性** | `Dockerfile.backend` 会 `pip install dbskiter`。直连 pypi.org 在国内网络下会**静默挂起数十分钟**导致构建卡死，Dockerfile 已配置 `PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/` 且限制超时/重试（与文件内 apt/npm 镜像策略一致） |
+| **基础镜像可达性** | 守护进程配置的 ustc 镜像 DNS 已失效；拉取基础镜像改走 `docker.1ms.run` 并重打标签，例如：`docker pull docker.1ms.run/library/python:3.12-slim && docker tag docker.1ms.run/library/python:3.12-slim python:3.12-slim`（`node:20-slim` 同理） |
+| **PyPI 可达性** | `Dockerfile.backend` 会 `pip install dbskiter`，`Dockerfile.agent-service` 安装 Python 依赖。直连 pypi.org 在国内网络下会**静默挂起数十分钟**导致构建卡死，两个 Dockerfile 均已配置 `PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/` 且限制超时/重试（与文件内 apt/npm 镜像策略一致） |
 | **外部网络** | 首次部署需 `docker network create tcb-front-nginx-network`（compose 中已声明为 `external: true`） |
+| **宿主 Python（本地调试用）** | 宿主自带 3.10；itops-agent-service 本地测试用 uv 装 3.12：`pip3 install uv -i https://mirrors.aliyun.com/pypi/simple/` → `UV_PYTHON_INSTALL_MIRROR=https://ghfast.top/https://github.com/astral-sh/python-build-standalone/releases/download uv python install 3.12` → `uv venv .venv --python 3.12 && uv pip install -e '.[dev]' -i https://mirrors.aliyun.com/pypi/simple/`（镜像内同样使用 3.12，两端一致） |
 
 ---
 
@@ -116,8 +122,10 @@ docker exec tcb-front-nginx nginx -t && docker exec tcb-front-nginx nginx -s rel
 
 | 检查项 | 命令 / 方式 | 期望 |
 |--------|-------------|------|
-| 容器健康 | `docker ps \| grep itops-` | 两者 `(healthy)` |
+| 容器健康 | `docker ps \| grep itops-` | backend / frontend / agent-service 三者 `(healthy)` |
 | 后端探活 | `curl -s localhost:19301/health` | `"status":"healthy"` |
+| 外部 Agent 服务 | 登录后 `GET /api/agents/providers` | `agent-service` `healthy:true`，消息含「已注册 Agent 类型 N 个」；backend 启动日志含 `Agent service LLM config synced: deepseek/deepseek-v4-flash` |
+| Agent 对话（远端链路） | 登录后 `POST /api/agents/providers/chat` 带 `"provider":"agent-service"` | 返回真实 LLM 回复，`attempts` 里 `agent-service` 成功 |
 | 域名可达 | `curl -so /dev/null -w '%{http_code}' https://itops.leansoftx.com/` | `200` |
 | 鉴权链路 | `curl -so /dev/null -w '%{http_code}' https://itops.leansoftx.com/api/skills` | `401`（非 502） |
 | 服务的是生产产物 | `docker exec itops-frontend ls /usr/share/nginx/html/assets/ \| grep index-`，与域名 `index.html` 引用的 hash 对比 | 一致 |
@@ -157,4 +165,5 @@ docker-compose up -d
 | 域名返回 200 但页面是旧版本 | 上游仍指向开发容器；确认 `itops.conf` 已切到 `itops-frontend:80` |
 | 外网能开页面但接口 4xx | 检查 `.env` 的 `ALLOWED_ORIGINS` 是否包含实际访问域名 |
 | `git push` 长时间无响应 | 本机 DNS 把 github.com 解析到被阻断的 IP；可临时 `echo "<可用IP> github.com" >> /etc/hosts` 后推送并还原 |
-| `/platform#providers` 显示外部 Agent 服务不可用 | 外部 Python `agent-service`（默认 `127.0.0.1:8000`）未部署；默认 Provider 为 `local`，降级链会跳过它，不影响使用 |
+| `/platform#providers` 显示外部 Agent 服务不可用 | ① 容器未起：`docker ps \| grep agent-service`，缺则 `docker-compose up -d agent-service`；② 刚重启完 30s 内属健康缓存未刷新；③ 看 `docker logs itops-agent-service` 与 backend 启动日志 |
+| agent-service 重启后对话退化为通用回答 | 注册表在内存（平台 Agent 需 backend 启动时注册），重启后到下次 backend 重启前注册丢失；LLM 配置不受影响（已落盘）。手动补注册：重启 `itops-backend` 即可（启动流程自动注册全部平台 Agent 并同步模型配置） |

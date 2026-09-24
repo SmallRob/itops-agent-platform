@@ -67,7 +67,7 @@
 ### :jigsaw: 平台扩展能力（Agent / Skills / Hooks）
 
 - **技能插件（Skills）** -- 技能 = 目录 + `SKILL.md` + `skill.json`，声明式描述能力与工具契约；目录增删即插即用，支持 zip 包安装/卸载、运行时启停、按意图自动匹配装载（内置 4 个技能包 / 18 个工具）
-- **Agent Provider 契约** -- Agent 执行抽象为可注册/注销的 Provider（本地内建 LLM / 外部 agent-service），支持降级链与健康熔断（连续失败阈值 → 熔断 → 冷却后探测恢复），每次调用的尝试链可回溯
+- **Agent Provider 契约** -- Agent 执行抽象为可注册/注销的 Provider（本地内建 LLM / 外部 agent-service），支持降级链与健康熔断（连续失败阈值 → 熔断 → 冷却后探测恢复），每次调用的尝试链可回溯。外部 Python 服务（`itops-agent-service`，FastAPI + PydanticAI）已随生产栈容器化部署：平台模型池为唯一 LLM 配置源（启动自动同步、落盘抗重启），平台 Agent 注册表自动同步，`sessionKey` 会话上下文透传
 - **Hooks 事件接入** -- `/api/hooks/*` 统一机器入口：异构告警（Prometheus/Zabbix/Grafana/阿里云/腾讯云/通用自动识别）标准化后进入既有处置流水线，另提供 Agent 隔离回合与事件唤醒
 - **能力中心（可视化）** -- 左侧导航「AI 运维 → 能力中心」（`/platform`）：技能管理、Provider 治理与降级链编排、Hooks 接入指引
 
@@ -266,9 +266,9 @@ itops-agent-platform/
 │       ├── contexts/               # React Context
 │       ├── hooks/                  # 自定义 Hooks
 │       └── lib/                    # 工具库 (API/XSS 防护/日期)
-├── itops-agent-service/            # Python Agent 服务
+├── itops-agent-service/            # Python Agent 服务（FastAPI + PydanticAI，生产栈容器 itops-agent-service）
 │   └── src/
-│       ├── agents/                 # Agent 定义
+│       ├── agents/                 # Agent 定义（惰性构建 + 运行时模型解析）
 │       ├── api/                    # FastAPI 端点
 │       ├── tools/                  # Agent 工具集
 │       └── knowledge/              # 知识库管理

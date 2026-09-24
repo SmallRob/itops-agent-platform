@@ -67,7 +67,7 @@
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `HOOKS_TOKEN` | 空 | `/api/hooks/*` 的 `X-Hook-Token` 期望值；为空则回退 `WEBHOOK_SECRET`，两者都为空时仅允许管理员 JWT（热读取，重启生效） |
+| `HOOKS_TOKEN` | 空 | 外部系统调用 `/api/hooks/*` 时的 `X-Hook-Token` 期望值；为空则回退 `WEBHOOK_SECRET`。平台前端用管理员会话（Bearer JWT）访问，不受此项影响（热读取，重启生效） |
 
 ## Skills 技能
 
@@ -85,11 +85,22 @@
 |------|--------|------|
 | `AGENT_BREAKER_THRESHOLD` | `3` | 连续失败多少次后熔断（可被 settings `agent_breaker_config` 覆盖） |
 | `AGENT_BREAKER_COOLDOWN_MS` | `60000` | 熔断冷却时间（毫秒），到期进入 half-open 探测 |
-| `AGENT_SERVICE_URL` | `http://localhost:8000` | 外部 Python Agent 服务地址 |
-| `AGENT_SERVICE_TIMEOUT` | `30000` | 调用外部 Agent 服务超时（毫秒） |
-| `AGENT_SERVICE_RETRIES` | `3` | 调用重试次数 |
+| `AGENT_SERVICE_URL` | 生产栈 `http://agent-service:8000`（容器内直连）；单机跑 backend 时 `http://localhost:8000` | 外部 Python Agent 服务地址（compose 已注入） |
+| `AGENT_SERVICE_TIMEOUT` | `120000` | 调用外部 Agent 服务超时（毫秒）；推理模型 + 工具循环耗时较长，生产栈已放宽 |
+| `AGENT_SERVICE_RETRIES` | `2` | 调用重试次数 |
 
 降级顺序本身不在环境变量里，用 `POST /api/agents/providers/chain` 写入 settings。
+
+## 外部 Agent 服务（itops-agent-service 容器）
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `AGENT_SERVICE_LOG_LEVEL` | `INFO` | 容器内 Python 服务日志级别 |
+| `LLM_PROVIDER` / `LLM_MODEL` | `deepseek` / `deepseek-v4-flash` | 兜底 LLM 配置；backend 启动时会把模型池默认模型（含 key/base）同步过去并持久化到 `data/llm_config.json`，此变量仅作独立启动兜底 |
+| `DEEPSEEK_API_KEY` / `DEEPSEEK_API_BASE` | 空 / `https://api.deepseek.com/v1` | DeepSeek 兜底配置（OpenAI 兼容协议） |
+| `OPENAI_API_KEY` / `OPENAI_API_BASE`、`DOUBAO_API_KEY`、`QWEN_API_KEY` | 空 | 其余 provider 兜底配置 |
+
+> 模型配置的唯一事实源是平台模型池（`ai_models` 表，AI 模型页可配）；外部服务落盘的 `llm_config.json` 只是抗重启副本，二者以后端启动同步收敛。API key 在 `GET /api/llm/config` 响应与日志中脱敏。
 
 ## Docker 资源管理
 

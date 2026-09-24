@@ -30,7 +30,12 @@ export class RemoteAgentProvider implements AgentProvider {
     const response = await getAgentServiceClient().chat({
       message: request.message,
       agent_type: agentType,
-      context: request.metadata,
+      // sessionKey 透传：外部服务据此维护会话上下文（契约的 sessionKey 语义）。
+      // 只传轻量字段，skills/fallbackChain 等内部元数据不进提示词
+      context: {
+        sessionKey: request.sessionKey,
+        source: (request.metadata as { source?: string } | undefined)?.source,
+      },
       stream: false,
     });
 

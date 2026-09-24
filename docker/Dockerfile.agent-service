@@ -1,0 +1,47 @@
+# ITOps Agent Service（外部 Python Agent 服务）
+# Build: DOCKER_BUILDKIT=1 docker-compose build agent-service
+# 依赖 BuildKit 缓存挂载（与 Dockerfile.backend 的构建策略一致）
+
+FROM python:3.12-slim
+
+# 阿里云 Debian 镜像（bookworm 源文件布局），与 Dockerfile.backend 策略一致
+RUN sed -i 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g; s|http://security.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources
+
+# PyPI 走阿里云镜像并限制超时/重试：直连 pypi.org 在国内网络会静默挂起导致构建卡死
+ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
+    PIP_TIMEOUT=30 \
+    PIP_RETRIES=2 \
+    PYTHONUNBUFFERED=1 \
+    TZ=Asia/Shanghai
+
+WORKDIR /app
+
+# 依赖清单先拷贝（利用层缓存：代码变更不触发依赖重装）
+COPY pyproject.toml README.md ./
+
+# 安装依赖（pydantic-ai 等均有 py3.12 轮子，无需编译器；pip 缓存走 BuildKit 缓存挂载）
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip
+
+# 拷贝源码与知识库并安装（hatchling 构建）
+COPY src/ ./src/
+COPY knowledge/ ./knowledge/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --no-cache-dir .
+
+# 数据目录（LLM 配置持久化挂载点）
+RUN mkdir -p /app/data
+
+# 非 root 运行
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup appuser && \
+    chown -R appuser:appgroup /app
+USER appuser
+
+EXPOSE 8000
+
+# 健康检查：探活 /api/health（无 curl，用标准库）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).status==200 else 1)"
+
+CMD ["python", "-m", "uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

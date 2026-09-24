@@ -136,6 +136,19 @@ skills/                         # 技能包目录（SKILLS_DIR，容器内 /app/
 
 ---
 
+## 外部 Agent 服务（itops-agent-service）
+
+`agent-service` Provider 的执行后端：独立 Python 服务（FastAPI + PydanticAI，容器 `itops-agent-service`，仅栈内网络可达），生产栈中经 `AGENT_SERVICE_URL=http://agent-service:8000` 直连。
+
+| 机制 | 说明 |
+|------|------|
+| Agent 注册表优先 | `/api/chat` 先查动态注册表（backend 启动时把 `agents` 表按 id 注册进去，含平台提示词），未命中再落到内置类型（general/alert/diagnosis/inspection） |
+| LLM 配置同步 | 唯一事实源是平台模型池（`ai_models` 表）；backend 启动把默认模型（provider/model/key/base）`POST /api/llm/config` 同步过去，外部服务落盘 `data/llm_config.json`（0600）抗重启 |
+| 惰性模型解析 | Agent 实例构造只存配置，每次执行现场解析模型实例（OpenAI 兼容协议，显式传 base_url/api_key，不读进程环境变量）；配置变更即时生效 |
+| 会话上下文 | Provider 契约的 `sessionKey` 透传到外部服务，按会话维护滚动历史注入提示词（内存态，LRU 有界） |
+| 错误语义 | LLM 未配置 → `503` + 可行动信息（区别于 500 故障），降级链可识别 |
+| 知识库 | 内置 YAML/JSON/MD 知识库（`knowledge/`），经 `search_knowledge` 工具与 `/api/knowledge/search` 代理暴露 |
+
 ## 配置
 
 | 配置项 | 位置 | 说明 |

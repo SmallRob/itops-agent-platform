@@ -1,11 +1,18 @@
-"""Agent模块 - 智能运维Agent实现"""
+"""Agent模块 - 智能运维Agent实现
+
+设计要点（ARCH-20260925-itops-agent-service / ADR-1、ADR-2）：
+- ITOpsAgent 构造只保存配置，PydanticAI Agent 在每次 run/run_stream 时现场构建，
+  LLM 配置变更（POST /api/llm/config）无需任何缓存失效即生效；
+- 模型实例由 resolve_model() 显式构造（OpenAI 兼容协议），凭据一律来自 LLM 配置
+  管理器（平台模型池同步），不依赖进程环境变量。
+"""
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import RunContext
 
 from ..deps import AgentDeps
 from ..config import settings
@@ -29,6 +36,10 @@ ITOPS_SYSTEM_PROMPT = """你是一个专业的IT运维助手（ITOps Agent），
 - 注意安全，避免执行危险命令"""
 
 
+class LLMNotConfiguredError(RuntimeError):
+    """LLM 未配置（缺少 API Key 或模型名），调用方应返回结构化的可行动错误"""
+
+
 class AgentResponse(BaseModel):
     """Agent响应"""
     content: str = Field(description="响应内容")
@@ -38,9 +49,55 @@ class AgentResponse(BaseModel):
     suggestions: list[str] = Field(default_factory=list, description="后续建议")
 
 
+def _build_openai_compatible_model(model_name: str, api_base: str, api_key: str):
+    """构造 OpenAI 兼容协议的模型实例（DeepSeek/豆包/千问/本地均兼容）
+
+    pydantic-ai 1.x 将 OpenAIModel 更名为 OpenAIChatModel，这里做双版本兼容。
+    """
+    try:
+        from pydantic_ai.models.openai import OpenAIChatModel
+    except ImportError:  # pydantic-ai 0.x
+        from pydantic_ai.models.openai import OpenAIModel as OpenAIChatModel  # type: ignore[no-redef]
+    from pydantic_ai.providers.openai import OpenAIProvider
+
+    return OpenAIChatModel(
+        model_name,
+        provider=OpenAIProvider(base_url=api_base, api_key=api_key),
+    )
+
+
+def resolve_model(model: Optional[str] = None):
+    """解析模型实例；凭据只来自 LLM 配置管理器
+
+    Args:
+        model: 模型名。None 表示用当前配置的默认模型；带 ``provider:name``
+            前缀的串（如 "openai:gpt-4o"）只提取名称部分 —— 协议端点与凭据
+            一律取自配置管理器，避免 pydantic-ai provider 注册表去读进程环境变量。
+
+    Raises:
+        LLMNotConfiguredError: 缺少 API Key 或模型名为空。
+    """
+    # 函数内导入：避免 api 包与 agents 包在 import 期的隐式耦合
+    from ..api.llm_config_manager import get_llm_config_manager
+
+    cfg = get_llm_config_manager().get_config()
+    name = (model or cfg.model or "").strip()
+    if ":" in name:
+        name = name.split(":", 1)[1].strip()
+    if not name:
+        raise LLMNotConfiguredError("LLM 模型名未配置")
+    if not cfg.api_key:
+        raise LLMNotConfiguredError(
+            f"LLM 未配置：模型 {name} 缺少 API Key。"
+            "请由平台同步（POST /api/llm/config）或设置对应环境变量（如 DEEPSEEK_API_KEY）"
+        )
+    api_base = (cfg.api_base or "https://api.openai.com/v1").strip()
+    return _build_openai_compatible_model(name, api_base, cfg.api_key)
+
+
 class ITOpsAgent:
-    """IT运维Agent基类"""
-    
+    """IT运维Agent基类（惰性构建：构造只存配置，运行时才装配 PydanticAI Agent）"""
+
     def __init__(
         self,
         name: str = "itops-agent",
@@ -51,37 +108,46 @@ class ITOpsAgent:
     ):
         self.name = name
         self.system_prompt = system_prompt
-        self.model = model or f"openai:{settings.llm_model}"
+        self.model_override = model
         self.metadata: dict[str, Any] = metadata or {}
         self._enabled_tools: Optional[list[str]] = tools
-        
-        # 创建PydanticAI Agent
-        self._agent = Agent(
-            self.model,
+
+    @property
+    def model(self) -> Optional[str]:
+        """展示用模型名（不带 provider 前缀）"""
+        name = self.model_override
+        if name and ":" in name:
+            name = name.split(":", 1)[1]
+        return name
+
+    def _build_agent(self):
+        """现场构建 PydanticAI Agent 并注册工具"""
+        from pydantic_ai import Agent
+
+        agent = Agent(
+            resolve_model(self.model_override),
             system_prompt=self.system_prompt,
             deps_type=AgentDeps,
             output_type=str,
-            defer_model_check=True,
         )
-        
-        # 注册工具
-        self._register_tools()
-    
-    def _register_tools(self):
+        self._register_tools(agent)
+        return agent
+
+    def _register_tools(self, agent):
         """注册Agent工具"""
         from ..tools import get_tool
-        
+
         enabled = self._enabled_tools
-        
+
         if enabled is None or "search_knowledge" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def search_knowledge(
                 ctx: RunContext[AgentDeps],
                 query: str,
                 category: Optional[str] = None,
             ) -> str:
                 """搜索运维知识库
-                
+
                 Args:
                     query: 搜索查询
                     category: 知识类别（可选）
@@ -90,16 +156,16 @@ class ITOpsAgent:
                     results = await ctx.deps.knowledge_base.search(query, category)
                     return str(results)
                 return "知识库未初始化"
-        
+
         if enabled is None or "execute_command" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def execute_command(
                 ctx: RunContext[AgentDeps],
                 server_id: str,
                 command: str,
             ) -> str:
                 """在服务器上执行命令
-                
+
                 Args:
                     server_id: 服务器ID
                     command: 要执行的命令
@@ -108,9 +174,9 @@ class ITOpsAgent:
                     result = await ctx.deps.ssh_manager.execute(server_id, command)
                     return str(result)
                 return "SSH管理器未初始化"
-        
+
         if enabled is None or "get_alerts" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def get_alerts(
                 ctx: RunContext[AgentDeps],
                 status: Optional[str] = None,
@@ -118,7 +184,7 @@ class ITOpsAgent:
                 limit: int = 10,
             ) -> str:
                 """获取系统告警
-                
+
                 Args:
                     status: 告警状态过滤
                     severity: 告警级别过滤
@@ -132,30 +198,30 @@ class ITOpsAgent:
                     )
                     return str(alerts)
                 return "告警管理器未初始化"
-        
+
         if enabled is None or "get_server_status" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def get_server_status(
                 ctx: RunContext[AgentDeps],
                 server_id: Optional[str] = None,
             ) -> str:
                 """获取服务器状态
-                
+
                 Args:
                     server_id: 服务器ID（可选，不传则返回所有服务器）
                 """
                 # 这里简化处理，实际应该调用服务器管理服务
                 return f"获取服务器状态: {server_id or 'all'}"
-        
+
         # 新增运维工具
         if enabled is None or "get_system_info" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def get_system_info(
                 ctx: RunContext[AgentDeps],
                 info_type: str = "all",
             ) -> str:
                 """获取系统信息（CPU、内存、磁盘、网络）
-                
+
                 Args:
                     info_type: 信息类型（cpu/memory/disk/network/all）
                 """
@@ -164,9 +230,9 @@ class ITOpsAgent:
                     result = await tool.execute(info_type=info_type)
                     return result.output if result.success else f"错误: {result.error}"
                 return "系统信息工具未初始化"
-        
+
         if enabled is None or "manage_processes" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def manage_processes(
                 ctx: RunContext[AgentDeps],
                 action: str = "list",
@@ -174,7 +240,7 @@ class ITOpsAgent:
                 top_n: int = 10,
             ) -> str:
                 """查看和管理系统进程
-                
+
                 Args:
                     action: 操作类型（list/top/kill）
                     process_name: 进程名称
@@ -185,9 +251,9 @@ class ITOpsAgent:
                     result = await tool.execute(action=action, process_name=process_name, top_n=top_n)
                     return result.output if result.success else f"错误: {result.error}"
                 return "进程管理工具未初始化"
-        
+
         if enabled is None or "network_diagnostics" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def network_diagnostics(
                 ctx: RunContext[AgentDeps],
                 action: str = "ping",
@@ -195,7 +261,7 @@ class ITOpsAgent:
                 port: Optional[int] = None,
             ) -> str:
                 """网络诊断和检查
-                
+
                 Args:
                     action: 操作类型（ping/port_check/dns/traceroute）
                     target: 目标地址
@@ -206,9 +272,9 @@ class ITOpsAgent:
                     result = await tool.execute(action=action, target=target, port=port)
                     return result.output if result.success else f"错误: {result.error}"
                 return "网络诊断工具未初始化"
-        
+
         if enabled is None or "analyze_logs" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def analyze_logs(
                 ctx: RunContext[AgentDeps],
                 log_file: str = "/var/log/syslog",
@@ -217,7 +283,7 @@ class ITOpsAgent:
                 level: Optional[str] = None,
             ) -> str:
                 """分析系统日志
-                
+
                 Args:
                     log_file: 日志文件路径
                     lines: 显示行数
@@ -229,16 +295,16 @@ class ITOpsAgent:
                     result = await tool.execute(log_file=log_file, lines=lines, keyword=keyword, level=level)
                     return result.output if result.success else f"错误: {result.error}"
                 return "日志分析工具未初始化"
-        
+
         if enabled is None or "manage_services" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def manage_services(
                 ctx: RunContext[AgentDeps],
                 action: str = "status",
                 service_name: str = "",
             ) -> str:
                 """管理系统服务
-                
+
                 Args:
                     action: 操作类型（status/start/stop/restart/reload）
                     service_name: 服务名称
@@ -248,9 +314,9 @@ class ITOpsAgent:
                     result = await tool.execute(action=action, service_name=service_name)
                     return result.output if result.success else f"错误: {result.error}"
                 return "服务管理工具未初始化"
-        
+
         if enabled is None or "disk_management" in enabled:
-            @self._agent.tool
+            @agent.tool
             async def disk_management(
                 ctx: RunContext[AgentDeps],
                 action: str = "usage",
@@ -258,7 +324,7 @@ class ITOpsAgent:
                 top_n: int = 10,
             ) -> str:
                 """磁盘空间分析和管理
-                
+
                 Args:
                     action: 操作类型（usage/cleanup/inodes）
                     path: 路径
@@ -269,67 +335,129 @@ class ITOpsAgent:
                     result = await tool.execute(action=action, path=path, top_n=top_n)
                     return result.output if result.success else f"错误: {result.error}"
                 return "磁盘管理工具未初始化"
-    
+
+    # ============================================================
+    # 提示词组装与结果提取
+    # ============================================================
+
+    def _compose_prompt(
+        self,
+        message: str,
+        context: Optional[dict[str, Any]] = None,
+        history: Optional[str] = None,
+    ) -> str:
+        """组装完整提示词：会话历史 + 上下文 + 用户问题"""
+        from ..sessions import SESSION_KEY_FIELDS
+
+        sections: list[str] = []
+        if history:
+            sections.append(f"对话历史（近期，供参考）：\n{history}")
+        if context:
+            context_items = [
+                f"- {k}: {v}"
+                for k, v in context.items()
+                if k not in SESSION_KEY_FIELDS
+            ]
+            if context_items:
+                sections.append("上下文信息：\n" + "\n".join(context_items))
+        sections.append(f"用户问题：{message}")
+        return "\n\n".join(sections)
+
+    def _model_settings(self) -> Optional[dict[str, Any]]:
+        """模型调用参数。温度不传：部分推理模型会拒绝该参数；max_tokens 保证推理链有余量"""
+        from ..api.llm_config_manager import get_llm_config_manager
+
+        cfg = get_llm_config_manager().get_config()
+        if cfg.max_tokens:
+            return {"max_tokens": int(cfg.max_tokens)}
+        return None
+
+    @staticmethod
+    def _result_output(result) -> str:
+        """提取文本输出（pydantic-ai 0.x 用 result.data，1.x 用 result.output）"""
+        output = getattr(result, "output", None)
+        if output is None:
+            output = getattr(result, "data", None)
+        if output is None:
+            return ""
+        return output if isinstance(output, str) else str(output)
+
+    @staticmethod
+    def _extract_tools_used(result) -> list[str]:
+        """从消息历史提取本次实际调用的工具名"""
+        names: list[str] = []
+        try:
+            for message in result.all_messages():
+                for part in getattr(message, "parts", []):
+                    if getattr(part, "part_kind", "") == "tool-call":
+                        name = getattr(part, "tool_name", None)
+                        if name:
+                            names.append(str(name))
+        except Exception:
+            return []
+        return sorted(set(names))
+
+    # ============================================================
+    # 执行入口
+    # ============================================================
+
     async def run(
         self,
         message: str,
         deps: Optional[AgentDeps] = None,
         context: Optional[dict[str, Any]] = None,
+        history: Optional[str] = None,
     ) -> AgentResponse:
         """运行Agent
-        
+
         Args:
             message: 用户消息
             deps: 运行时依赖
             context: 额外上下文
-            
+            history: 会话历史文本块（由 API 层按 sessionKey 渲染注入）
+
         Returns:
             AgentResponse: Agent响应
         """
+        agent = self._build_agent()
         if deps is None:
             deps = AgentDeps(settings=settings)
-        
-        # 构建完整提示词
-        full_prompt = message
-        if context:
-            context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
-            full_prompt = f"上下文信息：\n{context_str}\n\n用户问题：{message}"
-        
-        # 运行Agent
-        result = await self._agent.run(full_prompt, deps=deps)
-        
+
+        full_prompt = self._compose_prompt(message, context, history)
+        result = await agent.run(full_prompt, deps=deps, model_settings=self._model_settings())
+
         return AgentResponse(
-            content=result.data,
+            content=self._result_output(result),
+            tools_used=self._extract_tools_used(result),
             confidence=1.0,
         )
-    
+
     async def run_stream(
         self,
         message: str,
         deps: Optional[AgentDeps] = None,
         context: Optional[dict[str, Any]] = None,
+        history: Optional[str] = None,
     ):
         """流式运行Agent
-        
+
         Args:
             message: 用户消息
             deps: 运行时依赖
             context: 额外上下文
-            
+            history: 会话历史文本块
+
         Yields:
             str: 流式输出的文本片段
         """
+        agent = self._build_agent()
         if deps is None:
             deps = AgentDeps(settings=settings)
-        
-        # 构建完整提示词
-        full_prompt = message
-        if context:
-            context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
-            full_prompt = f"上下文信息：\n{context_str}\n\n用户问题：{message}"
-        
+
+        full_prompt = self._compose_prompt(message, context, history)
+
         # 流式运行Agent
-        async with self._agent.run_stream(full_prompt, deps=deps) as stream:
+        async with agent.run_stream(full_prompt, deps=deps) as stream:
             async for text in stream.stream_text():
                 yield text
 
@@ -337,7 +465,7 @@ class ITOpsAgent:
 # 预定义的Agent类型
 class AlertAgent(ITOpsAgent):
     """告警处理Agent"""
-    
+
     def __init__(self, model: Optional[str] = None):
         super().__init__(
             name="alert-agent",
@@ -359,7 +487,7 @@ class AlertAgent(ITOpsAgent):
 
 class DiagnosisAgent(ITOpsAgent):
     """故障诊断Agent"""
-    
+
     def __init__(self, model: Optional[str] = None):
         super().__init__(
             name="diagnosis-agent",
@@ -381,7 +509,7 @@ class DiagnosisAgent(ITOpsAgent):
 
 class InspectionAgent(ITOpsAgent):
     """巡检Agent"""
-    
+
     def __init__(self, model: Optional[str] = None):
         super().__init__(
             name="inspection-agent",
@@ -407,11 +535,11 @@ def create_agent(
     model: Optional[str] = None,
 ) -> ITOpsAgent:
     """创建Agent实例
-    
+
     Args:
         agent_type: Agent类型（general/alert/diagnosis/inspection）
         model: LLM模型
-        
+
     Returns:
         ITOpsAgent: Agent实例
     """
@@ -421,6 +549,6 @@ def create_agent(
         "diagnosis": DiagnosisAgent,
         "inspection": InspectionAgent,
     }
-    
+
     agent_class = agents.get(agent_type, ITOpsAgent)
     return agent_class(model=model)

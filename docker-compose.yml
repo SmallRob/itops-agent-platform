@@ -8,6 +8,51 @@
 # ============================================================
 
 services:
+  agent-service:
+    # 外部 Python Agent 服务（itops-agent-service）：远端 Agent Provider 的执行后端
+    # 仅加入栈内网络，不发布宿主端口；后端经 AGENT_SERVICE_URL 以服务名直连
+    build:
+      context: ./itops-agent-service
+      dockerfile: ../docker/Dockerfile.agent-service
+    container_name: itops-agent-service
+    networks:
+      - itops-network
+    environment:
+      - TZ=Asia/Shanghai
+      - LOG_LEVEL=${AGENT_SERVICE_LOG_LEVEL:-INFO}
+      # LLM 配置兜底（后端启动时会用模型池默认模型覆盖同步；此处用于独立启动场景）
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-v4-flash}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_API_BASE=${DEEPSEEK_API_BASE:-https://api.deepseek.com/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-https://api.openai.com/v1}
+      - DOUBAO_API_KEY=${DOUBAO_API_KEY:-}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+    volumes:
+      # LLM 配置持久化（data/llm_config.json），容器重启自动恢复
+      - agent-data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
   backend:
     # For local build
     build:
@@ -58,6 +103,11 @@ services:
       - SKILLS_DIR=${SKILLS_DIR:-/app/skills}
       # Hook 入站令牌（外部事件源调用 /api/hooks/* 时携带）
       - HOOKS_TOKEN=${HOOKS_TOKEN:-}
+      # 外部 Python Agent 服务（栈内服务名直连；远端 Agent Provider 的执行后端）
+      - AGENT_SERVICE_URL=${AGENT_SERVICE_URL:-http://agent-service:8000}
+      # 推理模型（如 deepseek-v4-flash）+ 工具循环耗时较长，放宽超时
+      - AGENT_SERVICE_TIMEOUT=${AGENT_SERVICE_TIMEOUT:-120000}
+      - AGENT_SERVICE_RETRIES=${AGENT_SERVICE_RETRIES:-2}
     volumes:
       - app-data:/app/data
       - app-backups:/app/backups
@@ -66,6 +116,9 @@ services:
       - ${DOCKER_SOCKET_HOST_PATH:-/var/run/docker.sock}:/var/run/docker.sock
       # Skills 插件目录（外部挂载，支持不重建镜像的动态插拔）
       - ./skills:/app/skills
+    depends_on:
+      agent-service:
+        condition: service_healthy
     # Resource limits
     deploy:
       resources:
@@ -143,4 +196,6 @@ volumes:
   app-data:
     driver: local
   app-backups:
+    driver: local
+  agent-data:
     driver: local

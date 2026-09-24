@@ -79,6 +79,9 @@ class Settings(BaseSettings):
     # 知识库配置
     knowledge_base_path: Path = Field(default_factory=lambda: Path("knowledge"))
     vector_store_path: Path = Field(default_factory=lambda: Path("data/vectors"))
+
+    # LLM 配置持久化文件（平台模型池同步后落盘，容器重启自动恢复）
+    llm_config_path: Path = Field(default_factory=lambda: Path("data/llm_config.json"))
     
     # MCP配置
     mcp_enabled: bool = True

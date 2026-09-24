@@ -4,6 +4,28 @@
 
 ---
 
+## [3.1.0] — 2026-09-25
+
+### ✨ 新增
+- **外部 Agent 服务生产化（itops-agent-service）**：新增 `docker/Dockerfile.agent-service`（python:3.12-slim + 阿里云镜像 + 非 root + healthcheck），生产栈 `docker-compose.yml` 接入 `agent-service` 容器（仅栈内网络，不发布宿主端口，配置卷 `agent-data`）；backend 经 `AGENT_SERVICE_URL=http://agent-service:8000` 直连
+- **LLM 配置同步链路**：backend 启动时把模型池默认模型（provider/model/api_key/api_base）同步到外部服务并落盘 `data/llm_config.json`（0600、原子写、容器重启自动恢复）；平台模型池为唯一事实源
+- **会话上下文透传**：`RemoteAgentProvider` 把契约 `sessionKey` 透传到外部服务，外部服务按会话维护滚动历史注入提示词（LRU 有界）
+- 默认模型切换为 DeepSeek `deepseek-v4-flash`（`ai_models` 表落库并置默认）
+- itops-agent-service 新增会话历史模块（`src/sessions.py`）与配套测试（`test_sessions.py`、`test_chat_semantics.py`）
+
+### 🐛 修复
+- 外部服务 `/api/chat` 只认 4 个内置 Agent 类型、忽略平台注册 Agent 的问题：改为注册表优先（平台 Agent 提示词生效），内置类型兜底
+- Agent 构造时一次性绑定模型、`POST /api/llm/config` 同步后不生效的问题：重构为惰性构建 + 运行时 `resolve_model()`（显式 OpenAI 兼容实例，凭据只来自配置管理器）
+- 知识库未注入 `AgentDeps` 导致 `search_knowledge` 工具恒返回「知识库未初始化」
+- LLM 未配置时 `/api/chat` 抛裸 500：改为结构化 `503`（与故障区分，降级链可识别）
+- `pydantic-ai` 锁定 `<1.0.0`、`opentelemetry-api` 锁定 `<1.33`（1.33+ 移除 `_events` API 导致导入失败）
+
+### 💥 变更
+- `AGENT_SERVICE_TIMEOUT` 生产默认 30s → 120s（推理模型 + 工具循环耗时）；`AGENT_SERVICE_RETRIES` 默认 3 → 2
+- itops-agent-service 本地调试/镜像统一 Python 3.12（原宿主 3.10 不满足 `requires-python>=3.11`）
+
+---
+
 ## [3.0.5] — 2026-05-28
 
 ### 🔒 安全特性增强（核心更新）

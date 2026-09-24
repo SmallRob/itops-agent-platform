@@ -191,18 +191,37 @@ itops-agent-service/
 
 ## 与ITOps Agent Platform集成
 
-本服务可以从ITOps Agent Platform后端调用：
+生产栈中本服务以容器 `itops-agent-service` 运行（`docker-compose.yml` 已接入，仅栈内网络可达），平台后端经 `AGENT_SERVICE_URL=http://agent-service:8000` 调用。启动时平台自动完成两类同步：
+
+1. **Agent 注册**：平台 `agents` 表逐个 `POST /api/agents/{id}/register`（名称 + 系统提示词）；`/api/chat` 按 agent_type **先查注册表**，未命中再落到内置类型。
+2. **LLM 配置**：平台模型池默认模型（provider/model/api_key/api_base）`POST /api/llm/config` 同步，落盘 `data/llm_config.json`（0600），容器重启自动恢复——无需重放同步。
+
+会话上下文：平台透传 `sessionKey`（请求 context 内），服务端按会话维护滚动历史注入提示词。
+
+模型凭据来源说明：模型实例在运行时经 `resolve_model()` 显式构造（OpenAI 兼容协议，显式传 base_url/api_key），不依赖进程环境变量；`openai:model` 形式的模型串只取模型名。
 
 ```typescript
-// 在ITOps Agent Platform后端中调用
+// 在ITOps Agent Platform后端中调用（等价的 REST 形式）
 const response = await fetch('http://localhost:8000/api/chat', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     message: '服务器CPU使用率过高',
-    agent_type: 'diagnosis',
+    agent_type: 'diagnosis',      // 内置类型或已注册的平台 Agent ID
+    context: { sessionKey: 'conv-1' }, // 可选：会话上下文
   }),
 });
+```
+
+## 部署与本地调试
+
+- **生产部署**：`docker/Dockerfile.agent-service`（python:3.12-slim，非 root，healthcheck），`docker-compose build agent-service && docker-compose up -d agent-service`。
+- **本地测试**（宿主 Python 3.12）：
+
+```bash
+uv venv .venv --python 3.12
+uv pip install -e '.[dev]' -i https://mirrors.aliyun.com/pypi/simple/
+.venv/bin/pytest -q
 ```
 
 ## 开发

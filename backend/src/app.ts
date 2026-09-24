@@ -235,6 +235,7 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 import { initAlertService } from '@services/alert';
+import * as aiModelService from '@services/ai/aiModelService';
 
 async function registerExistingAgents() {
   try {
@@ -265,6 +266,33 @@ async function registerExistingAgents() {
     }
 
     logger.info(`Registered ${agents.length} agents with agent service`);
+
+    // 同步模型池默认模型到外部 Agent 服务，使远端对话与平台使用同一 LLM 配置
+    try {
+      const defaultModel = aiModelService.getDefaultModel();
+      if (defaultModel && defaultModel.enabled) {
+        // 平台 provider_type → 外部服务的 OpenAI 兼容 provider 名（zhipu 等走 openai 兼容端点）
+        const providerAlias: Record<string, string> = {
+          volcengine: 'doubao',
+          aliyun: 'qwen',
+          deepseek: 'deepseek',
+          openai: 'openai',
+          zhipu: 'openai',
+          local: 'local',
+        };
+        await client.syncLLMConfig({
+          provider: providerAlias[defaultModel.provider_type] || 'openai',
+          model: defaultModel.model_id,
+          api_key: aiModelService.getEffectiveApiKey(defaultModel) || undefined,
+          api_base: aiModelService.getEffectiveApiBase(defaultModel) || undefined,
+        });
+        logger.info(`Agent service LLM config synced: ${defaultModel.provider_type}/${defaultModel.model_id}`);
+      } else {
+        logger.warn('AI model pool has no enabled default model, skip LLM config sync');
+      }
+    } catch (llmSyncError) {
+      logger.warn('Failed to sync LLM config to agent service:', llmSyncError);
+    }
   } catch (error) {
     logger.error('Failed to register existing agents:', error);
   }
