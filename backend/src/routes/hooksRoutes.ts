@@ -5,8 +5,8 @@
  *   POST /api/hooks/wake           事件注入（可选触发 Agent 摘要）
  *   GET  /api/hooks/sources        可用来源与标准化能力
  *
- * 认证：X-Hook-Token / Bearer 与 env HOOKS_TOKEN 比对（未配置时回退 WEBHOOK_SECRET；
- * 两者都未配置则要求已登录管理员，避免裸奔）。
+ * 认证：外部系统用 X-Hook-Token（与 HOOKS_TOKEN 比对，未配置时回退 WEBHOOK_SECRET）；
+ *       平台前端用管理员会话 JWT（配置了 HOOKS_TOKEN 也不影响，见 authorizeHook）。
  */
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
@@ -28,31 +28,47 @@ function safeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufferA, bufferB);
 }
 
-/** 校验 Hook 令牌；未配置令牌时要求「管理员 JWT」 */
+/**
+ * 校验 Hook 令牌或平台管理员会话
+ *
+ * 两类调用方：
+ *  ① 外部系统（Prometheus 等）：携带 X-Hook-Token，与 HOOKS_TOKEN（回退 WEBHOOK_SECRET）精确比对；
+ *  ② 平台前端（能力中心 → Hooks 接入）：携带管理员 Bearer JWT。
+ *
+ * 注意：配置 HOOKS_TOKEN 后**不能**只认令牌——否则界面读取来源列表必然 401，
+ * 而该 401 会触发前端 token 刷新（刷新令牌单次轮换），进而把用户异常踢回登录页。
+ */
 function authorizeHook(req: Request): { ok: boolean; reason?: string } {
   const configured = process.env.HOOKS_TOKEN || process.env.WEBHOOK_SECRET;
-  const provided =
-    (req.headers['x-hook-token'] as string) ||
-    (req.headers['x-webhook-secret'] as string) ||
-    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : '');
+  const hookToken =
+    (req.headers['x-hook-token'] as string) || (req.headers['x-webhook-secret'] as string) || '';
+  const bearer = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : '';
 
-  if (configured) {
-    if (provided && safeEqual(provided, configured)) return { ok: true };
-    return { ok: false, reason: '令牌校验失败' };
+  // ① 外部系统：令牌精确比对（常量时间）
+  //    支持三种携带方式：X-Hook-Token / X-Webhook-Secret / Authorization: Bearer <HOOKS_TOKEN>
+  //    （Alertmanager 等组件的 webhook http_config 只能配置 authorization，不能自定义请求头）
+  for (const candidate of [hookToken, bearer]) {
+    if (configured && candidate && safeEqual(candidate, configured)) return { ok: true };
   }
 
-  // 未配置令牌：允许平台管理员会话调用（hooks 挂在认证中间件之前，此处自行校验 JWT）
-  if (provided) {
+  // ② 平台管理员会话（hooks 路由挂在 authenticateToken 之前，此处自行校验 JWT）
+  if (bearer) {
     try {
-      const payload = jwt.verify(provided, env.JWT_SECRET) as { role?: string };
+      const payload = jwt.verify(bearer, env.JWT_SECRET) as { role?: string };
       if (payload?.role === 'admin') return { ok: true };
-      return { ok: false, reason: '需要管理员权限（或配置 HOOKS_TOKEN）' };
+      return { ok: false, reason: '需要管理员权限（或提供正确的 X-Hook-Token）' };
     } catch {
-      return { ok: false, reason: '令牌无效（或配置 HOOKS_TOKEN 供外部系统使用）' };
+      // Bearer 不是合法 JWT：继续按「令牌不匹配」处理，避免暴露具体失败原因
     }
   }
 
-  return { ok: false, reason: '缺少凭据：请提供 X-Hook-Token，或配置 HOOKS_TOKEN 后由外部系统调用' };
+  if (configured) return { ok: false, reason: '令牌校验失败' };
+  return {
+    ok: false,
+    reason: '缺少凭据：请提供 X-Hook-Token，或配置 HOOKS_TOKEN 后由外部系统调用',
+  };
 }
 
 function rejectUnauthorized(req: Request, res: Response, reason?: string) {

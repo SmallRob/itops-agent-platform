@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 interface TokenRefreshResult {
   token: string;
@@ -96,23 +96,46 @@ export const formDataRequestConfig = {
   ],
 };
 
-api.interceptors.request.use(
-  async (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    const method = (config.method || 'get').toUpperCase();
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-      config.headers['X-Session-Id'] = getCsrfSessionId();
-      config.headers['X-Csrf-Token'] = await getCsrfToken();
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+/** 需要 CSRF 头的写方法（后端全局中间件对 POST/PUT/DELETE/PATCH 校验） */
+const CSRF_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
+
+/**
+ * 统一附加认证与 CSRF 头
+ *
+ * 两个实例（api / refreshApi）必须共用同一套逻辑：refreshApi 曾漏加 CSRF 头，
+ * 导致 POST /api/auth/refresh 被全局 CSRF 中间件拦截返回 403，
+ * 而响应拦截器把「刷新失败」一律当作会话失效处理 → 任意 401 都会强退到登录页。
+ */
+async function attachAuthAndCsrf(config: InternalAxiosRequestConfig) {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+  const method = (config.method || 'get').toUpperCase();
+  if (CSRF_METHODS.includes(method)) {
+    config.headers['X-Session-Id'] = getCsrfSessionId();
+    config.headers['X-Csrf-Token'] = await getCsrfToken();
+  }
+  return config;
+}
+
+api.interceptors.request.use(attachAuthAndCsrf, (error) => Promise.reject(error));
+refreshApi.interceptors.request.use(attachAuthAndCsrf, (error) => Promise.reject(error));
+
+/** CSRF token 失效（后端重启/过期）时重新获取并重试一次 */
+async function postRefresh(refreshToken: string) {
+  try {
+    return await refreshApi.post('/api/auth/refresh', { refreshToken });
+  } catch (error) {
+    const err = error as { response?: { status?: number; data?: { error?: string } } };
+    if (err.response?.status === 403 && err.response?.data?.error === 'Invalid or missing CSRF token') {
+      cachedCsrfToken = null;
+      await fetchCsrfToken();
+      return await refreshApi.post('/api/auth/refresh', { refreshToken });
+    }
+    throw error;
+  }
+}
 
 api.interceptors.response.use(
   (response) => {
@@ -149,6 +172,9 @@ api.interceptors.response.use(
       }
 
       if (isRefreshing) {
+        // 排队等待同一个刷新结果；注意也要打上 _retry，否则重试再遇 401 会重新进入刷新流程，
+        // 与 React Query 自动重试叠加后会形成「刷新风暴」（每次都轮换并拉黑上一次的 refreshToken）
+        originalRequest._retry = true;
         return new Promise<TokenRefreshResult>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -174,7 +200,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await refreshApi.post('/api/auth/refresh', { refreshToken });
+        const { data } = await postRefresh(refreshToken);
 
         if (data.success) {
           const { token: newToken, refreshToken: newRefreshToken } = data.data;
@@ -189,11 +215,27 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError as Error, null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('refreshToken');
-        
-        window.location.href = '/login';
+        // 只有「刷新令牌确实被拒绝」（400 无令牌 / 401 过期或无效）才判定会话结束并登出。
+        // 但若本地 refreshToken 在本次刷新期间已被并发刷新轮换（刷新令牌单次有效），
+        // 本次的 401 只是「用了旧令牌」，属于竞态而非会话失效 —— 此时必须保留会话，
+        // 后续请求会用轮换后的新令牌，否则会出现"访问某页面被异常踢回登录页"。
+        const status = (refreshError as { response?: { status?: number } })?.response?.status;
+        const rotatedByConcurrentRefresh =
+          localStorage.getItem('refreshToken') !== null &&
+          localStorage.getItem('refreshToken') !== refreshToken;
+
+        if ((status === 400 || status === 401) && !rotatedByConcurrentRefresh) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        } else {
+          console.warn(
+            `[api] Token 刷新失败（保留本地会话）：status=${status || 'N/A'}${
+              rotatedByConcurrentRefresh ? '，本令牌已被并发刷新轮换' : ''
+            }`
+          );
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -20,13 +20,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 验证token是否有效
-const verifyToken = async (_token: string): Promise<boolean> => {
+/**
+ * 校验本地 token 是否有效
+ *  - 'valid'   ：服务端确认有效
+ *  - 'invalid' ：服务端明确判定无授权（401），应清理本地会话
+ *  - 'unknown' ：网络中断、网关 5xx 等非鉴权失败，不得据此登出（否则一次抖动就把用户踢回登录页）
+ */
+type TokenCheck = 'valid' | 'invalid' | 'unknown';
+
+const verifyToken = async (): Promise<TokenCheck> => {
   try {
     const response = await api.get('/api/auth/me');
-    return response.status === 200;
-  } catch {
-    return false;
+    return response.status === 200 ? 'valid' : 'invalid';
+  } catch (error) {
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    return status === 401 ? 'invalid' : 'unknown';
   }
 };
 
@@ -39,22 +47,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       const savedToken = localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
-      
+
       if (savedToken && savedUser) {
-        try {
-          // 验证token是否仍然有效
-          const isValid = await verifyToken(savedToken);
-          if (isValid) {
-            setToken(savedToken);
+        const result = await verifyToken();
+        if (result === 'invalid') {
+          // 服务端明确否定：清除本地存储并回到登录页
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        } else {
+          // 'valid' 直接恢复；'unknown' 保留本地会话（后续请求失败会再走刷新/重试）
+          try {
             setUser(JSON.parse(savedUser));
-          } else {
-            // Token无效，清除本地存储
+            setToken(savedToken);
+          } catch {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
           }
-        } catch {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
         }
       }
       setIsLoading(false);

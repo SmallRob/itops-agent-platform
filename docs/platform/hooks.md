@@ -106,7 +106,7 @@ curl -s -X POST http://localhost:3001/api/hooks/wake \
 
 | 项 | 说明 |
 |----|------|
-| 认证顺序 | `X-Hook-Token`（或 `X-Webhook-Secret`、`Authorization: Bearer`）与 `HOOKS_TOKEN` 比对 → 未配置则回退 `WEBHOOK_SECRET` → 两者都未配置时**只允许管理员 JWT**（payload 含 `role: "admin"`） |
+| 认证方式 | 二者其一：① 外部系统用 `X-Hook-Token`（或 `X-Webhook-Secret`）与 `HOOKS_TOKEN`（回退 `WEBHOOK_SECRET`）常量时间比对；② 平台前端用管理员 `Bearer` JWT（payload 含 `role: "admin"`）。**配置了 `HOOKS_TOKEN` 不影响管理员会话访问**——否则界面读取来源列表会 401，进而触发无谓的 token 刷新 |
 | 常量时间比较 | 令牌比对使用 `crypto.timingSafeEqual`，长度不等直接拒绝 |
 | 失败可观测 | 认证失败写审计（`hook_auth_failed`），响应给出明确原因文案 |
 | CSRF | `/api/hooks/*` 已在全局 CSRF 中间件中豁免（机器入口不使用 Cookie 会话，无法也不应携带 CSRF Token） |
@@ -137,6 +137,163 @@ HOOKS_TOKEN=$(openssl rand -hex 32)
    期望 `accepted > 0`、`errors == []`，且告警中心出现对应记录。
 
 **不需要改**：`hookService`、`alertIngest`、Agent、通知、修复策略——分发链路与来源无关。
+
+---
+
+## 接入实操：Prometheus + Grafana（dt01 参考实现）
+
+已在 dt01（10.137.154.215，ASDM 测试环境）实测打通的完整接线，可作为其它环境的模板。
+
+```
+dt01 现有监控栈                                 平台（10.137.154.239:19301）
+  asdm-prometheus ──alerting──▶ itops-alertmanager ──POST /api/hooks/alert/prometheus──▶ 告警中心
+  asdm-grafana    ──webhook 联系点──────────────────POST /api/hooks/alert/grafana───────▶ 告警中心
+```
+
+### 1) Alertmanager（Prometheus 侧投递器）
+
+Prometheus 自身不能发 webhook，必须有 Alertmanager。目标机无外网时，在本机（可经镜像代理）取镜像后传入：
+
+```bash
+# 平台主机（可访问 docker.1ms.run 代理）
+docker pull docker.1ms.run/prom/alertmanager:v0.27.0
+docker tag  docker.1ms.run/prom/alertmanager:v0.27.0 alertmanager:0.27.0
+docker save -o /tmp/alertmanager.tar alertmanager:0.27.0
+(cd /tmp && python3 -m http.server 18080 --bind 0.0.0.0 &)   # 临时 HTTP 分发
+
+# 目标机
+curl -o /tmp/am.tar http://<平台主机>:18080/alertmanager.tar && docker load -i /tmp/am.tar
+```
+
+配置 `/data/itops-hooks/alertmanager.yml`（**令牌用 `authorization` 携带**，因为 `webhook_configs` 不支持自定义请求头）：
+
+```yaml
+global:
+  resolve_timeout: 5m
+route:
+  receiver: itops-platform
+  group_by: ['alertname', 'instance']
+  group_wait: 5s
+  group_interval: 10s
+  repeat_interval: 30m
+receivers:
+  - name: itops-platform
+    webhook_configs:
+      - url: 'http://<平台主机>:19301/api/hooks/alert/prometheus'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '<HOOKS_TOKEN>'
+```
+
+> **权限坑**：官方镜像以 `nobody`(65534) 运行，`chmod 600` 会导致 `Loading configuration file failed: permission denied` 并无限重启。
+> 正确做法：`chown -R 65534:65534 /data/itops-hooks && chmod 750 /data/itops-hooks && chmod 640 /data/itops-hooks/alertmanager.yml`。
+
+```bash
+docker run -d --name itops-alertmanager --network <监控网络> --restart unless-stopped \
+  -p 19093:9093 -v /data/itops-hooks/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro \
+  alertmanager:0.27.0 --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
+```
+
+### 2) Prometheus（规则 + 指向 Alertmanager）
+
+```yaml
+# prometheus.yaml 追加
+rule_files:
+  - /etc/prometheus/rules/*.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['itops-alertmanager:9093']
+```
+
+规则文件（挂载目录，示例含实用规则）：
+
+```yaml
+groups:
+  - name: itops-hooks
+    rules:
+      - alert: ITOpsScrapeTargetDown
+        expr: up == 0
+        for: 1m
+        labels: { severity: critical, source: prometheus }
+        annotations:
+          summary: '监控目标不可达：{{ $labels.instance }}'
+```
+
+- 若原容器未挂载规则目录，需在编排文件里加 `- ./observability/prometheus/rules:/etc/prometheus/rules:ro` 并重建该容器；
+- 已加挂载后，仅改规则文件**不必重建**：`curl -X POST http://<prometheus>:9090/-/reload`（需 `--web.enable-lifecycle`，注意子路径部署时为 `/_prometheus/-/reload`）。
+
+### 3) Grafana（联系点 + 告警规则）
+
+```bash
+G=http://127.0.0.1:19330; AUTH='admin:<密码>'
+
+# 联系点：Grafana 的 webhook 也只能配 authorization，不能自定义请求头
+curl -u "$AUTH" -X POST "$G/api/v1/provisioning/contact-points" \
+  -H 'Content-Type: application/json' -H 'X-Disable-Provenance: true' -d '{
+  "name": "ITOps-Platform-Hooks", "type": "webhook",
+  "settings": {
+    "url": "http://<平台主机>:19301/api/hooks/alert/grafana",
+    "httpMethod": "POST",
+    "authorization_scheme": "Bearer",
+    "authorization_credentials": "<HOOKS_TOKEN>"
+  },
+  "disableResolveMessage": false }'
+```
+
+告警规则（关键点：**用规则级 `notification_settings.receiver` 指定联系点**，避免改动全局通知策略）：
+
+```json
+{ "title": "…", "ruleGroup": "itops-hooks", "folderUID": "itops-platform", "condition": "C",
+  "for": "1m", "orgID": 1,
+  "labels": { "severity": "critical", "source": "grafana" },
+  "annotations": { "summary": "…", "description": "…" },
+  "notification_settings": { "receiver": "ITOps-Platform-Hooks",
+    "group_wait": "30s", "group_interval": "5m", "repeat_interval": "4h" },
+  "data": [
+    { "refId": "A", "datasourceUid": "asdm-prometheus", "relativeTimeRange": { "from": 300, "to": 0 },
+      "model": { "datasource": { "type": "prometheus", "uid": "asdm-prometheus" }, "expr": "up == 0",
+                 "instant": true, "range": false, "refId": "A", "intervalMs": 1000, "maxDataPoints": 100 } },
+    { "refId": "C", "datasourceUid": "__expr__",
+      "model": { "datasource": { "type": "__expr__", "uid": "__expr__" }, "type": "threshold",
+                 "expression": "A", "refId": "C",
+                 "conditions": [ { "type": "query", "evaluator": { "type": "gt", "params": [0] },
+                   "operator": { "type": "and" }, "query": { "params": ["C"] },
+                   "reducer": { "type": "last", "params": [] } } ] } }
+  ] }
+```
+
+> 提交到 `POST/PUT /api/v1/provisioning/alert-rules` 时，注解里**不要写 Go 模板**（`{{ $labels.x }}`）——转义稍有偏差就会 400 被拒。
+
+### 4) 按需验证投递链路（无需留下常驻自检告警）
+
+```bash
+# a) 直接从目标机投一条 Prometheus 报文到平台（只验网络+令牌+适配器）
+curl -X POST http://<平台主机>:19301/api/hooks/alert/prometheus \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $HOOKS_TOKEN" \
+  -d '{"alerts":[{"status":"firing","labels":{"alertname":"HookSelfCheck","instance":"probe","severity":"warning"},
+       "annotations":{"summary":"链路自检"}}]}'
+
+# b) 走完整链路（Alertmanager 注入，验证 Alertmanager→平台）
+curl -X POST http://<dt01>:19093/api/v2/alerts -H 'Content-Type: application/json' -d '[{
+  "labels":{"alertname":"HookSelfCheck","instance":"probe","severity":"warning"},
+  "annotations":{"summary":"链路自检"},"startsAt":"2026-01-01T00:00:00Z"}]'
+```
+
+两条命令后，平台告警中心应出现 `HookSelfCheck`（来源分别为 `prometheus` / `grafana`）。
+
+### 5) 实测踩到的坑
+
+| 现象 | 原因与处理 |
+|------|-----------|
+| 界面读来源列表 401，进而被踢回登录页 | 平台曾要求「配置 HOOKS_TOKEN 后只认令牌」；**已修复**：管理员 Bearer JWT 与令牌二者其一即可（见「安全」） |
+| Alertmanager/Grafana 无法带 `X-Hook-Token` | 二者的 webhook 只能配 `authorization`；平台已支持 `Authorization: Bearer <HOOKS_TOKEN>` 这一携带方式 |
+| Grafana 改了配置却迟迟不投递 | Grafana 通知失败**不重试**，要等 `repeat_interval`（默认 4h）或告警状态变化；调短 `group_interval`/`repeat_interval` 可加速验证 |
+| 平台告警标题显示成 `Grafana Alert` | Grafana 报文的规则名在 `labels.alertname`（每条 alert 无 `title`/`ruleName`）；**适配器已修**为逐级回退 |
+| Alertmanager 反复重启报 `permission denied` | 见上文「权限坑」 |
+| 投递成功但平台无记录 | 用 `docker logs itops-backend \| grep hooks` 看该请求的状态码；401/403 属认证，400 属来源/报文 |
 
 ---
 

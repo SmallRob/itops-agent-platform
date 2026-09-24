@@ -187,8 +187,20 @@ export function adaptGrafana(payload: unknown): AlertAdapterResult {
 
       const labels = (alert.labels || {}) as Record<string, string>;
       const annotations = (alert.annotations || {}) as Record<string, string>;
-      const title = (alert.ruleName || alert.title || annotations.title || 'Grafana Alert') as string;
-      const content = (alert.message || annotations.description || annotations.summary || JSON.stringify(alert)) as string;
+      // Grafana 统一告警的 webhook 报文里，规则名在 labels.alertname（每条 alert 没有 title/ruleName 字段），
+      // 顶层才有 title；逐级回退，避免标题退化成无信息量的 "Grafana Alert"
+      const title = (alert.ruleName ||
+        alert.title ||
+        labels.alertname ||
+        annotations.summary ||
+        annotations.title ||
+        (body.title as string) ||
+        'Grafana Alert') as string;
+      const content = (alert.message ||
+        annotations.description ||
+        annotations.summary ||
+        annotations.message ||
+        JSON.stringify(alert)) as string;
       const rawSeverity = (labels.severity || (alert.severity as string) || labels.level || 'medium') as string | number;
 
       alerts.push({

@@ -60,7 +60,7 @@ export default function HooksIntegration() {
   const toast = useToast();
   const [copied, setCopied] = useState<string | null>(null);
 
-  const { data: sources = [], isLoading, isFetching, refetch } = useQuery<HookSource[]>({
+  const { data: sources = [], isLoading, isFetching, isError, error, refetch } = useQuery<HookSource[]>({
     queryKey: ['hook-sources'],
     queryFn: () => api.get('/api/hooks/sources').then((r) => r.data.data || []),
     retry: 1,
@@ -103,12 +103,12 @@ export default function HooksIntegration() {
       <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5">
         <KeyRound className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
         <div className="text-sm text-text-secondary space-y-1">
-          <p className="font-medium text-text-primary">认证方式（按优先级）</p>
+          <p className="font-medium text-text-primary">认证方式（二者其一）</p>
           <p>
-            ① 请求头 <span className="font-mono text-xs">X-Hook-Token</span> 与服务端环境变量{' '}
-            <span className="font-mono text-xs">HOOKS_TOKEN</span> 比对；
-            ② 未配置时回退 <span className="font-mono text-xs">WEBHOOK_SECRET</span>；
-            ③ 两者都未配置时，仅允许管理员会话（Bearer Token）调用。
+            ① 外部系统：请求头 <span className="font-mono text-xs">X-Hook-Token</span> 与服务端环境变量{' '}
+            <span className="font-mono text-xs">HOOKS_TOKEN</span> 比对（未配置时回退{' '}
+            <span className="font-mono text-xs">WEBHOOK_SECRET</span>）；
+            ② 平台前端：携带管理员会话（Bearer Token）即可，本页即走此方式。
           </p>
           <p className="text-xs text-text-tertiary">
             Hooks 端点已豁免 CSRF（机器入口不使用 Cookie 会话）；认证失败会写入审计日志（hook_auth_failed）。
@@ -122,6 +122,20 @@ export default function HooksIntegration() {
           <h3 className="font-semibold text-text-primary">支持的来源</h3>
           <span className="text-xs text-text-tertiary">{sources.length} 个</span>
         </div>
+        {isError && (
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-status-warning/40 bg-status-warning/10">
+            <ShieldAlert className="w-4 h-4 text-status-warning flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-text-secondary">
+              <p className="font-medium text-text-primary">来源列表加载失败</p>
+              <p className="text-xs mt-1">
+                {(error as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+                  (error as Error)?.message ||
+                  '请检查后端 /api/hooks/sources 是否可访问'}
+                ：管理员会话或 X-Hook-Token 二者其一即可（见上方认证方式）
+              </p>
+            </div>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-text-secondary text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
