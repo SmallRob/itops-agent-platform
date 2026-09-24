@@ -18,6 +18,9 @@ services:
     container_name: itops-backend
     networks:
       - itops-network
+      # 宿主 nginx（tcb-front-nginx）所在网络：itops.leansoftx.com 域名的上游，
+      # 加入后 nginx 可用容器名直连；已用 docker network create 预建，故为 external
+      - tcb-front-nginx-network
     ports:
       - "19301:3001"
     environment:
@@ -96,6 +99,8 @@ services:
     container_name: itops-frontend
     networks:
       - itops-network
+      # 同 backend：供宿主 nginx 以容器名反代
+      - tcb-front-nginx-network
     ports:
       - "19300:80"
     environment:
@@ -129,6 +134,10 @@ services:
 networks:
   itops-network:
     driver: bridge
+  # 宿主 nginx（tcb-front-nginx）所在外部网络，用于域名反代到本栈
+  # 若不存在，先执行：docker network create tcb-front-nginx-network
+  tcb-front-nginx-network:
+    external: true
 
 volumes:
   app-data:

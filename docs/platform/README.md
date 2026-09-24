@@ -14,6 +14,7 @@
 | [hooks.md](./hooks.md) | 外部告警怎么接？认证怎么做？如何新增一家监控源？ | 集成开发、运维 |
 | [configuration.md](./configuration.md) | 配置分几层？什么改环境变量、什么改 settings？改动如何生效？ | 运维、实施 |
 | [environment-variables.md](./environment-variables.md) | 所有环境变量的默认值与含义？ | 运维、部署 |
+| [deployment.md](./deployment.md) | 本服务器如何发布投产？构建前置条件、数据迁移、域名切换、验证清单与回滚 | 运维、发布负责人 |
 
 > 与本目录并列的系统级历史文档（部署、API、工作流等）见 [docs/README.md](../README.md)。
 

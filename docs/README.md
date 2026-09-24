@@ -35,6 +35,7 @@ ITOps Agent Platform 所有技术文档集合。
 - [Hooks 事件入站](./platform/hooks.md) — 三端点、六来源映射、认证与 curl 示例
 - [配置体系](./platform/configuration.md) — 环境变量 / settings 表 / 默认值三层模型
 - [环境变量清单](./platform/environment-variables.md) — 全量环境变量分组说明
+- [生产发布流程](./platform/deployment.md) — 本服务器投产 runbook（构建前置、数据迁移、域名切换、验证与回滚）
 
 ### 👩‍💻 开发文档
 
