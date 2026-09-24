@@ -66,7 +66,8 @@ function aiModelToModelConfig(model: AIModel): ModelConfig {
     apiKey: apiKey || '',
     apiBase: apiBase,
     temperature: 0.7,
-    maxTokens: 2048,
+    // 推理模型（如 deepseek-v4-flash）会先消耗输出预算做推理，预算过小会导致 content 为空
+    maxTokens: 8192,
   };
 }
 
@@ -262,6 +263,12 @@ export async function executeAgentWithLLM(
           provider: model.provider_type,
         }
       );
+
+      // 空文本说明输出预算被推理耗尽（finish_reason=length），显式失败进入下一候选/报错，
+      // 避免静默返回空串让上层误判为成功
+      if (!result.text || result.text.trim() === '') {
+        throw new Error('模型返回了空内容（输出预算可能被推理过程耗尽）');
+      }
 
       logger.info(`✅ [${agent.name}] Call successful, ${result.text.length} chars, ${result.latencyMs}ms`);
 

@@ -350,7 +350,8 @@ async function callLLMAPI(
       model,
       messages,
       temperature,
-      max_tokens: 2048
+      // 推理模型（如 deepseek-v4-flash）会先消耗输出预算做推理，预算过小会导致 content 为空
+      max_tokens: 8192
     };
 
     // 检查并清理 API 地址
@@ -466,7 +467,8 @@ async function callModelWithConfig(
       model: model.model_id,
       messages,
       temperature,
-      max_tokens: 2048
+      // 推理模型（如 deepseek-v4-flash）会先消耗输出预算做推理，预算过小会导致 content 为空
+      max_tokens: 8192
     };
 
     let finalApiBase = apiBase;
@@ -496,8 +498,19 @@ async function callModelWithConfig(
     circuitBreakers.get(providerName)?.recordSuccess();
 
     if (response.data.choices && response.data.choices.length > 0) {
-      const content = response.data.choices[0].message.content;
-      logger.info(`✅ [${agentName}] ${model.name} call successful, response length: ${content?.length || 0} chars`);
+      const message = response.data.choices[0].message;
+      const content = message.content;
+      // 推理模型把思考过程放在 reasoning_content，最终回答在 content。
+      // content 为空说明输出预算被推理耗尽（finish_reason=length），显式报错而不是静默返回空串
+      if (!content || content.trim() === '') {
+        const finishReason = response.data.choices[0].finish_reason;
+        throw new Error(
+          finishReason === 'length'
+            ? '模型输出预算被推理过程耗尽（content 为空），请增大 max_tokens 或换用非推理模型'
+            : '模型返回了空内容'
+        );
+      }
+      logger.info(`✅ [${agentName}] ${model.name} call successful, response length: ${content.length} chars`);
       
       recordAgentExecution(
         agentId,

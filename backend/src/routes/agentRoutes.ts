@@ -6,6 +6,7 @@ import { executeAgentNode } from '@services/agent';
 import { agentRegistry } from '@services/agent';
 import { createAuditLog } from '@services/audit';
 import { requireRole } from '../middleware/auth';
+import { AGENT_NAMES } from '../constants/agentNames';
 
 const router = Router();
 
@@ -277,17 +278,28 @@ router.post('/', requireRole('admin', 'operator'), (req: Request, res: Response)
 });
 
 // 预设Agent的测试输入提示词
-const PRESET_TEST_INPUTS: Record<string, string> = {
-  '告警处理Agent': '服务器CPU使用率异常，当前92%，阈值80%，请分析并提供处理建议',
-  '故障诊断Agent': '应用服务响应超时，请诊断可能的原因并提供排查步骤',
-  '日志分析Agent': '系统日志中有多个错误记录，请分析并找出问题根源',
-  '系统巡检Agent': '请执行系统健康检查，检查CPU、内存、磁盘、网络状况',
-  '变更执行Agent': '请执行Nginx服务重启操作',
-  '文档生成Agent': '请生成今天的系统运维报告',
-  '合规检查Agent': '请执行安全合规检查，验证系统配置是否符合安全标准',
-  '服务器命令执行Agent': '请检查服务器磁盘使用情况',
-  '自动巡检Agent': '请对所有服务器执行批量巡检',
-};
+// 预设测试输入：按 AGENT_NAMES 关键字包含匹配（与 agentExecutor 的路由逻辑一致），
+// 避免 Agent 名称与键名不完全一致时永远落不到预设
+const PRESET_TEST_INPUTS: Array<{ match: string; input: string }> = [
+  { match: AGENT_NAMES.ALERT_HANDLER, input: '服务器CPU使用率异常，当前92%，阈值80%，请分析并提供处理建议' },
+  { match: AGENT_NAMES.FAULT_DIAGNOSIS, input: '应用服务响应超时，请诊断可能的原因并提供排查步骤' },
+  { match: AGENT_NAMES.LOG_ANALYSIS, input: '系统日志中有多个错误记录，请分析并找出问题根源' },
+  { match: AGENT_NAMES.AUTO_INSPECTION, input: '请对选择的服务器执行批量巡检' },
+  { match: AGENT_NAMES.SYSTEM_INSPECTION, input: '请执行系统健康检查，检查CPU、内存、磁盘、网络状况' },
+  { match: AGENT_NAMES.SERVER_COMMAND, input: '请检查服务器磁盘使用情况' },
+  { match: AGENT_NAMES.COMPLIANCE_CHECK, input: '请执行安全合规检查，验证系统配置是否符合安全标准' },
+  { match: AGENT_NAMES.CHANGE_EXECUTION, input: '请为「Nginx 服务重启」制定变更执行方案' },
+  { match: AGENT_NAMES.DOC_GENERATION, input: '请根据本平台的巡检结果生成一份系统运维报告' },
+  { match: AGENT_NAMES.DATABASE_ADMIN, input: '检查数据库健康状态' },
+];
+
+/** 按名称关键字查找推荐测试输入（先精确匹配，再包含匹配） */
+function getPresetTestInput(agentName: string): string | undefined {
+  return (
+    PRESET_TEST_INPUTS.find((p) => p.match === agentName)?.input ??
+    PRESET_TEST_INPUTS.find((p) => agentName.includes(p.match))?.input
+  );
+}
 
 // 测试Agent执行
 router.post('/:id/test', async (req: Request, res: Response) => {
@@ -382,7 +394,7 @@ router.get('/:id/test-input', (req: Request, res: Response) => {
     }
     
     const agentName = (agent as { name: string }).name;
-    let testInput = PRESET_TEST_INPUTS[agentName];
+    let testInput = getPresetTestInput(agentName);
     
     // 如果没有预设的测试输入，生成一个通用的
     if (!testInput) {
